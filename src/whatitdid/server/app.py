@@ -27,6 +27,8 @@ import uuid
 import webbrowser
 from typing import Any
 
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi import Body, FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -36,6 +38,7 @@ from ..compare import compare as run_compare
 from ..core import profile
 from ..labeler import KEY_FILES, ChatModel, Jev, LabelerError, load_question_set
 from ..noise import load_reference
+from ..watch import finished_runs, session_in
 
 PACKAGE = pathlib.Path(__file__).resolve().parent.parent
 STATIC = PACKAGE / "static"
@@ -74,6 +77,89 @@ class Jobs:
         with self._lock:
             return [{k: v for k, v in job.items() if k != "result"}
                     for job in self._jobs.values()]
+
+
+class Watch:
+    """One directory being followed while a benchmark writes into it.
+
+    The CLI version writes HTML and a summary file as it goes. This one keeps the reports
+    in the same place the rest of the server does, so a task that finishes mid-run is
+    something you can click on immediately rather than after the round ends.
+    """
+
+    def __init__(self, root: pathlib.Path, questions: str, reports: dict,
+                 labeler_kind: str, concurrency: int, poll: int, parallel: int = 2):
+        self.root, self.questions, self.reports = root, questions, reports
+        self.labeler_kind, self.concurrency, self.poll = labeler_kind, concurrency, poll
+        self.parallel = parallel
+        self.id = uuid.uuid4().hex[:12]
+        self.state = "running"
+        self.error: str | None = None
+        self.started = time.time()
+        self.seen: set[str] = set()
+        self.total = 0          # tasks the directory holds, not just the ones started
+        self.done: list[dict] = []
+        self.failed: list[dict] = []
+        self._stop = threading.Event()
+        self._lock = threading.Lock()
+
+    def stop(self) -> None:
+        self._stop.set()
+
+    def snapshot(self) -> dict:
+        with self._lock:
+            return {"id": self.id, "root": str(self.root), "state": self.state,
+                    "error": self.error, "questions": self.questions,
+                    "seconds": round(time.time() - self.started, 1),
+                    "found": self.total, "done": list(self.done),
+                    "failed": list(self.failed)}
+
+    def run(self) -> None:
+        try:
+            labeler = Jev() if self.labeler_kind == "jev" else ChatModel(model="deepseek-flash")
+        except LabelerError as exc:
+            with self._lock:
+                self.state, self.error = "error", str(exc)
+            return
+        def handle(problem: str, run_dir: pathlib.Path) -> None:
+            session = session_in(run_dir)
+            if session is None:
+                with self._lock:
+                    self.failed.append({"problem": problem, "why": "no session file found"})
+                return
+            t0 = time.monotonic()
+            try:
+                rep = profile(session, labeler=labeler, questions=self.questions,
+                              workers=self.concurrency)
+                self.reports[problem] = rep.to_web_dict()
+                with self._lock:
+                    self.done.append({"problem": problem, "n_turns": rep.to_dict()["n_turns"],
+                                      "seconds": round(time.monotonic() - t0, 1)})
+            except Exception as exc:  # noqa: BLE001  a checkup must not stop the watch
+                with self._lock:
+                    self.failed.append({"problem": problem,
+                                        "why": f"{type(exc).__name__}: {exc}"})
+
+        # Several tasks at a time, as the CLI does. Profiling is network-bound, so waiting
+        # for one trajectory before looking at the next wastes the whole point.
+        pool = ThreadPoolExecutor(max_workers=self.parallel)
+        try:
+            while not self._stop.is_set():
+                ready = finished_runs(self.root)
+                with self._lock:
+                    self.total = len(ready)
+                for problem, run_dir in ready:
+                    if self._stop.is_set() or problem in self.seen:
+                        continue
+                    self.seen.add(problem)
+                    pool.submit(handle, problem, run_dir)
+                if self._stop.wait(self.poll):
+                    break
+        finally:
+            pool.shutdown(wait=True)
+        with self._lock:
+            if self.state == "running":
+                self.state = "stopped"
 
 
 def write_key(name: str, value: str) -> pathlib.Path:
@@ -123,6 +209,7 @@ def build_app(*, lang: str = "en", reports_dir: pathlib.Path | None = None,
               demo_only: bool = False) -> FastAPI:
     app = FastAPI(title="whatitdid", docs_url=None, redoc_url=None)
     jobs = Jobs()
+    watches: dict[str, Watch] = {}
     reports: dict[str, dict] = {}
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="whatitdid-"))
 
@@ -239,6 +326,39 @@ def build_app(*, lang: str = "en", reports_dir: pathlib.Path | None = None,
             check_narration)
         return {"job": job_id, "name": name}
 
+    @app.post("/api/watch")
+    def start_watch(payload: dict = Body(...)):
+        if demo_only:
+            raise HTTPException(403, "this is the bundled demo; run `whatitdid serve` to watch a run")
+        root = pathlib.Path(payload.get("root", "")).expanduser()
+        if not root.is_dir():
+            raise HTTPException(400, f"not a directory: {root}")
+        watch = Watch(root, payload.get("questions", "sre.v1"), reports,
+                      payload.get("labeler", "jev"), int(payload.get("concurrency", 8)),
+                      int(payload.get("poll", 15)), int(payload.get("parallel", 2)))
+        watches[watch.id] = watch
+        threading.Thread(target=watch.run, daemon=True).start()
+        return watch.snapshot()
+
+    @app.get("/api/watch")
+    def list_watches():
+        return [w.snapshot() for w in watches.values()]
+
+    @app.get("/api/watch/{watch_id}")
+    def get_watch(watch_id: str):
+        watch = watches.get(watch_id)
+        if not watch:
+            raise HTTPException(404, f"no watch {watch_id!r}")
+        return watch.snapshot()
+
+    @app.post("/api/watch/{watch_id}/stop")
+    def stop_watch(watch_id: str):
+        watch = watches.get(watch_id)
+        if not watch:
+            raise HTTPException(404, f"no watch {watch_id!r}")
+        watch.stop()
+        return watch.snapshot()
+
     @app.get("/api/jobs")
     def list_jobs():
         return jobs.listing()
@@ -269,6 +389,8 @@ def build_app(*, lang: str = "en", reports_dir: pathlib.Path | None = None,
 
     @app.on_event("shutdown")
     def _cleanup():
+        for watch in watches.values():
+            watch.stop()
         shutil.rmtree(scratch, ignore_errors=True)
 
     if STATIC.exists():

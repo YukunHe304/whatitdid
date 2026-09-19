@@ -43,8 +43,8 @@ def compare(before: dict[str, dict], after: dict[str, dict], *, rounds: int = 20
             seed: int = 0, repeats: list[dict[str, dict]] | None = None) -> dict:
     """Two maps of task id -> ``Report.to_dict()``, paired by task id.
 
-    `repeats` are further runs of the *same* configuration as `before`; when given, the
-    repeat-noise floor is measured from them instead of the shipped reference values.
+    `repeats` are further runs of the *same* configuration as `before`. `before` counts as
+    one arm itself, so a single extra run is enough to measure the floor.
     """
     shared = sorted(set(before) & set(after))
     if len(shared) < 3:
@@ -61,7 +61,11 @@ def compare(before: dict[str, dict], after: dict[str, dict], *, rounds: int = 20
     left, right = _question_set(before), _question_set(after)
     mixed = bool(left and right and left != right)
     question_set = left if not mixed else f"{left} vs {right}"
-    floor = noise_mod.resolve(repeats, question_set)
+    # `before` is itself one run of the configuration the repeats repeat, so it belongs in
+    # the set the floor is measured from. Without it a single --repeat produced no pair and
+    # the baseline silently came back empty — the exact documented usage, doing nothing.
+    arms = [before, *repeats] if repeats else None
+    floor = noise_mod.resolve(arms, question_set)
     noise_values = floor.get("metrics", {})
 
     metrics: list[dict] = []

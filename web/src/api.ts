@@ -85,6 +85,18 @@ export interface Config {
   question_sets: { id: string; phases: string[]; roles: Record<string, string[]> }[];
 }
 
+export interface WatchState {
+  id: string;
+  root: string;
+  state: "running" | "stopped" | "error";
+  error: string | null;
+  questions: string;
+  seconds: number;
+  found: number;
+  done: { problem: string; n_turns: number; seconds: number }[];
+  failed: { problem: string; why: string }[];
+}
+
 export interface Job {
   id: string;
   name: string;
@@ -129,6 +141,15 @@ export const api = {
   reports: () => fetch("api/reports").then(json<{ id: string; agent: string }[]>),
   report: (id: string) => fetch(`api/reports/${id}`).then(json<Report>),
   job: (id: string) => fetch(`api/jobs/${id}`).then(json<Job>),
+  startWatch: (root: string, questions: string) =>
+    fetch("api/watch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ root, questions }),
+    }).then(json<WatchState>),
+  watch: (id: string) => fetch(`api/watch/${id}`).then(json<WatchState>),
+  stopWatch: (id: string) =>
+    fetch(`api/watch/${id}/stop`, { method: "POST" }).then(json<WatchState>),
   profileFile: (file: File, questions: string) => {
     const form = new FormData();
     form.append("file", file);

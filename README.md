@@ -26,8 +26,11 @@ against the noise a re-run produces anyway.
 whatitdid run session.jsonl --out report.html   # one run
 whatitdid watch ./runs --out reports/           # profile each task as the benchmark finishes it
 whatitdid compare ./before ./after              # what did the change actually change
-whatitdid serve                                 # the web app
+whatitdid serve                                 # all three of the above, by clicking
 ```
+
+`serve` is not a viewer. Profiling a run, following a benchmark as it writes, and comparing
+two rounds are all done from the page — a path or a dropped file, and a button.
 
 ## What it tells you that a score does not
 

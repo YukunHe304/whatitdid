@@ -215,7 +215,7 @@ def main(argv: list[str] | None = None) -> int:
     cmp_.add_argument("after", type=pathlib.Path)
     cmp_.add_argument("--repeat", type=pathlib.Path, action="append",
                       help="another run of the SAME config as 'before'; repeat the flag. "
-                           "Used to measure the repeat-noise floor from your own runs.")
+                           "One is enough: 'before' counts as the other arm.")
     cmp_.add_argument("--json", type=pathlib.Path)
     cmp_.add_argument("--seed", type=int, default=0)
     add_lang(cmp_)

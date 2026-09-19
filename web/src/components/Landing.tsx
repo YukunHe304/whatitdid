@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { api, type Config, type Strings } from "../api";
+import { api, type CompareResult, type Config, type Strings } from "../api";
+import { ComparePanel, WatchPanel } from "./Workflow";
 
 /** The first screen has one job: answer "what do I do now".
  *
@@ -11,12 +12,14 @@ export function Landing({
   s,
   onDemo,
   onProfiled,
+  onCompared,
   saved = [],
 }: {
   config: Config;
   s: Strings;
   onDemo: (which: "agents" | "compare") => void;
   onProfiled: (id: string) => void;
+  onCompared: (r: CompareResult) => void;
   saved?: { id: string; agent: string }[];
 }) {
   const [over, setOver] = useState(false);
@@ -202,6 +205,17 @@ export function Landing({
             </p>
           )}
           {error && <p className="err">{error}</p>}
+        </>
+      )}
+
+      {!config.demo_only && (
+        <>
+          <WatchPanel
+            s={s}
+            questionSets={config.question_sets.map((q) => q.id)}
+            onOpen={onProfiled}
+          />
+          <ComparePanel s={s} onResult={onCompared} />
         </>
       )}
 

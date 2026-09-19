@@ -140,6 +140,7 @@ export default function App() {
         {error && <p className="err">{error}</p>}
         {view === "home" && (
           <Landing config={config} s={s} onDemo={openDemo} onProfiled={openProfiled}
+                   onCompared={(r) => { setCompare(r); setView("compare"); }}
                    saved={saved} />
         )}
         {view === "agents" && agents && <AgentsView agents={agents} s={s} onOpen={openAgent} />}

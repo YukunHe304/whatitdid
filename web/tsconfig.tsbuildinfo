@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/api.ts","./src/main.tsx","./src/components/agentsview.tsx","./src/components/compareview.tsx","./src/components/landing.tsx","./src/components/reportview.tsx","./src/components/ribbon.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/api.ts","./src/main.tsx","./src/components/agentsview.tsx","./src/components/compareview.tsx","./src/components/landing.tsx","./src/components/reportview.tsx","./src/components/ribbon.tsx","./src/components/workflow.tsx"],"version":"5.9.3"}

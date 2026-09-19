@@ -169,6 +169,33 @@ UI: dict[str, dict[str, str]] = {
     "land_go": {"en": "Profile", "zh": "开始体检"},
     "land_labelling": {"en": "labelling {done} steps", "zh": "正在标注 {done} 步"},
     "land_saved": {"en": "Profiled in this session", "zh": "这次会话里体检过的"},
+    # watch
+    "watch_h": {"en": "Follow a benchmark while it runs", "zh": "边跑边体检"},
+    "watch_lede": {
+        "en": "Point at the directory your benchmark writes into. Each task is profiled the "
+              "moment it finishes, so the only wall-clock you pay is the last one. Nothing is "
+              "written to that directory and the benchmark is not touched.",
+        "zh": "指向 benchmark 正在写的那个目录。每道题一跑完就立刻体检，"
+              "所以你只等最后一道题的那几秒。不往那个目录写任何东西，也不碰 benchmark。"},
+    "watch_root": {"en": "directory the benchmark writes into", "zh": "benchmark 正在写的目录"},
+    "watch_start": {"en": "Start watching", "zh": "开始盯着"},
+    "watch_stop": {"en": "Stop", "zh": "停"},
+    "watch_running": {"en": "watching", "zh": "盯着"},
+    "watch_stopped": {"en": "stopped", "zh": "已停"},
+    "watch_found": {"en": "{done} of {found} tasks profiled", "zh": "{found} 道题里体检了 {done} 道"},
+    "watch_waiting": {"en": "waiting for the first task to finish…", "zh": "等第一道题跑完……"},
+    # compare form
+    "cmp_h": {"en": "Compare two rounds", "zh": "对照两轮"},
+    "cmp_lede": {
+        "en": "Two directories of profiled runs, paired by task. Add a third run of the same "
+              "configuration as the first and each change is judged against how far that "
+              "metric drifts when nothing changed.",
+        "zh": "两个已经体检过的目录，按题目配对。再给一个跟第一个同配置的运行，"
+              "每个变化就会拿去跟「什么都没改时这个指标能漂多远」比。"},
+    "cmp_before": {"en": "before", "zh": "改之前"},
+    "cmp_after": {"en": "after", "zh": "改之后"},
+    "cmp_repeat": {"en": "same config as 'before', run again (optional)", "zh": "跟「改之前」同配置的再一次运行（可选）"},
+    "cmp_go": {"en": "Compare", "zh": "开始对照"},
     "land_q_lede": {
         "en": "Six questions per step. One names what kind of move it was and changes with the "
               "domain; the other five are the same for every domain, so a coding agent and an ops "

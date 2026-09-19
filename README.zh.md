@@ -24,8 +24,11 @@ whatitdid 给每一步打标签——这一步是哪类动作、有没有带来�
 whatitdid run session.jsonl --out report.html   # 体检一条轨迹
 whatitdid watch ./runs --out reports/           # benchmark 每跑完一题就体检一题
 whatitdid compare ./before ./after              # 这次改动到底改了什么
-whatitdid serve                                 # 网页版
+whatitdid serve                                 # 上面三件事，点着就能做
 ```
+
+`serve` 不只是个看报告的地方。体检一条轨迹、盯着 benchmark 边跑边体检、对照两轮，
+三件都能在网页上做完——填个路径或者把文件拖进去，然后点一下。
 
 ## 分数给不了的东西
 

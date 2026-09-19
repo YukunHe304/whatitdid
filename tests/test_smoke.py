@@ -490,3 +490,16 @@ def test_unused_options_are_not_judged_on_too_short_a_sample():
     assert not _enough_for_dead(12, 8), "12 steps cannot show all 8 options"
     assert _enough_for_dead(36, 8)
     assert not _enough_for_dead(25, 20), "20 options need more than 25 steps"
+
+
+def test_a_single_repeat_run_is_enough_to_measure_the_floor():
+    """'before' is itself a run of the configuration being repeated.
+
+    Leaving it out meant one --repeat produced no pair and the floor came back empty,
+    silently — which is the usage the README documents.
+    """
+    result = compare(_run(0.0), _run(0.10), rounds=1000, repeats=[_run(0.01)])
+    assert result["noise"]["source"] == "measured"
+    assert result["noise"]["n_runs"] == 2
+    probe = next(r for r in result["metrics"] if r["id"] == "probe")
+    assert probe["noise"] is not None and probe["verdict"] != "no_baseline"
