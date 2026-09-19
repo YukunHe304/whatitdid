@@ -50,15 +50,17 @@ def compare(before: dict[str, dict], after: dict[str, dict], *, rounds: int = 20
     if len(shared) < 3:
         raise ValueError(f"only {len(shared)} tasks pair up between these two runs — too few")
 
-    # A profile depends entirely on which questions were asked. Comparing across two
-    # different sets silently produces a table of meaningless numbers, so refuse.
+    # A profile depends on which questions were asked, so two sets cannot simply be laid
+    # side by side. But the shipped sets share five questions word for word, and those stay
+    # meaningful across domains — an ops agent and a coding agent can still be compared on
+    # whether they re-examine, or bring new information, or do what they said.
+    #
+    # So: same set, compare everything. Different sets, compare only what the rows have in
+    # common and drop the domain question, whose options do not even have the same names.
+    # Never silently: `mixed_sets` says so, and the caller prints it.
     left, right = _question_set(before), _question_set(after)
-    if left and right and left != right:
-        raise ValueError(
-            f"these runs used different question sets ({left} vs {right}); their numbers "
-            f"are not comparable. Re-profile one side with the other's set.")
-
-    question_set = left or right or "sre.v1"
+    mixed = bool(left and right and left != right)
+    question_set = left if not mixed else f"{left} vs {right}"
     floor = noise_mod.resolve(repeats, question_set)
     noise_values = floor.get("metrics", {})
 
@@ -71,11 +73,12 @@ def compare(before: dict[str, dict], after: dict[str, dict], *, rounds: int = 20
                     "verdict": noise_mod.verdict(row["delta"], row["solid"], level)})
         metrics.append(row)
 
-    phases = [p for p in (before[shared[0]].get("mix") or {})
-              if all(p in (after[k].get("mix") or {}) for k in shared)]
-    for phase in phases:
-        add(phase, "phase", [before[k]["mix"][phase] for k in shared],
-            [after[k]["mix"][phase] for k in shared])
+    if not mixed:
+        phases = [p for p in (before[shared[0]].get("mix") or {})
+                  if all(p in (after[k].get("mix") or {}) for k in shared)]
+        for phase in phases:
+            add(phase, "phase", [before[k]["mix"][phase] for k in shared],
+                [after[k]["mix"][phase] for k in shared])
 
     stat_keys = [k for k in (before[shared[0]].get("stats") or {})
                  if all(k in before[s].get("stats", {}) and k in after[s].get("stats", {})
@@ -90,9 +93,15 @@ def compare(before: dict[str, dict], after: dict[str, dict], *, rounds: int = 20
     if len(pairs) >= 3:
         add("truthfulness", "metric", [a for a, _ in pairs], [b for _, b in pairs])
 
+    if not metrics:
+        raise ValueError(
+            f"these runs share no comparable measurement ({left} vs {right}) — their "
+            f"question sets have nothing in common")
+
     metrics.sort(key=lambda r: -abs(r["delta"]))
     return {"metrics": metrics, "tasks": {"shared": shared, "n": len(shared)},
-            "questions": question_set, "rounds": rounds, "noise": floor}
+            "questions": question_set, "mixed_sets": mixed, "rounds": rounds,
+            "noise": floor}
 
 
 VERDICT_MARK = {"above_noise": "✓", "within_noise": "·", "unstable": "", "no_baseline": "?"}
@@ -115,6 +124,12 @@ def format_compare(result: dict, lang: str = "en") -> str:
         detail = {"en": "no repeat baseline — re-run the same config to get one",
                   "zh": "没有重跑基准——把同一个配置再跑一遍就能有"}[lang]
     lines.append(f"  {detail}")
+    if result.get("mixed_sets"):
+        lines.append("  " + {
+            "en": "different question sets: comparing only the questions they share, "
+                  "and not what kind of move each step was",
+            "zh": "两边问题集不同：只比它们共有的问题，不比「这一步在干什么」",
+        }[lang])
 
     names = {row["id"]: (phase_name(row["id"], lang) if row["group"] == "phase"
                          else metric_name(row["id"], lang)) for row in result["metrics"]}

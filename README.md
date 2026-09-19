@@ -134,7 +134,10 @@ stay comparable on those.
 | how narrowly aimed | 0 = the whole system, 4 = one property of one object |
 
 The set is a file, not a constant — `--questions path/to/your.json`. It is recorded in
-every report, and `compare` **refuses** to compare two runs labelled with different sets.
+every report, and `compare` uses it: two runs labelled with the same set are compared on
+everything, two runs labelled with different sets are compared only on the questions they
+share, and the domain question is dropped because its options are not even named the same
+on both sides. The output says which happened.
 
 ## The labeler
 

@@ -230,9 +230,38 @@ def test_compare_separates_a_real_shift_from_an_alternating_one():
     assert by_id["hypothesis_driven"]["solid"] is False
 
 
-def test_compare_refuses_two_different_question_sets():
-    with pytest.raises(ValueError, match="different question sets"):
-        compare(_run(0.0, questions="sre.v1"), _run(0.1, questions="code.v1"), rounds=200)
+def test_compare_across_question_sets_keeps_only_the_shared_questions():
+    """An ops agent and a coding agent still share five questions word for word.
+
+    Refusing outright was wrong — it threw away the comparison the shared questions exist
+    to support. Dropping the domain question is right: its options are not even named the
+    same on both sides.
+    """
+    before = _run(0.0, questions="sre.v1")
+    after = _run(0.1, questions="code.v1")
+    for row in after.values():           # a coding set has different phase options
+        row["mix"] = {"survey": 0.5, "reproduce": 0.5}
+
+    result = compare(before, after, rounds=500)
+    assert result["mixed_sets"] is True
+    assert all(r["group"] == "metric" for r in result["metrics"]), "no phase may be compared"
+    assert {"hypothesis_driven", "revisits", "truthfulness"} <= {r["id"] for r in result["metrics"]}
+    assert "sre.v1 vs code.v1" == result["questions"]
+
+
+def test_compare_refuses_when_two_runs_share_no_measurement():
+    before = _run(0.0, questions="sre.v1")
+    after = _run(0.1, questions="other.v1")
+    for row in after.values():
+        row["mix"], row["stats"], row["truthfulness"] = {"x": 1.0}, {}, None
+    with pytest.raises(ValueError, match="share no comparable measurement"):
+        compare(before, after, rounds=200)
+
+
+def test_compare_of_one_set_still_includes_the_domain_question():
+    result = compare(_run(0.0), _run(0.1), rounds=500)
+    assert result["mixed_sets"] is False
+    assert any(r["group"] == "phase" for r in result["metrics"])
 
 
 def test_compare_survives_a_metric_missing_on_one_side():
