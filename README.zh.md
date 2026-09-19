@@ -8,6 +8,8 @@
 uvx agentvitals demo        # 用随包的真实数据打开浏览器，不需要 API key
 ```
 
+![七个 CLI agent 跑同一个故障，每次运行画成一条按步打过标签的轨迹](docs/media/agents.png)
+
 ---
 
 一轮 benchmark 跑完，你手上只有两样东西：一个分数，和几万行日志。中间是空的。

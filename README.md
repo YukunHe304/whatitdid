@@ -8,6 +8,8 @@
 uvx agentvitals demo        # opens the browser on real bundled data. No API key needed.
 ```
 
+![Seven CLI agents on the same fault, each run drawn as a trace of labelled steps](docs/media/agents.png)
+
 ---
 
 A benchmark hands you two things: a score, and tens of thousands of lines of log. Nothing
