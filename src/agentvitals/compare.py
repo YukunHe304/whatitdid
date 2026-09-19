@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import random
 import statistics as st
+import unicodedata
 
 from . import noise as noise_mod
 
@@ -115,16 +116,32 @@ def format_compare(result: dict, lang: str = "en") -> str:
                   "zh": "没有重跑基准——把同一个配置再跑一遍就能有"}[lang]
     lines.append(f"  {detail}")
 
-    head = (f"{ui('cmp_metric', lang):18} {ui('cmp_delta', lang):>9} {ui('cmp_interval', lang):>22} "
-            f"{ui('cmp_improved', lang):>11} {ui('cmp_noise', lang):>11}  {ui('cmp_verdict', lang)}")
-    lines.append(head)
+    names = {row["id"]: (phase_name(row["id"], lang) if row["group"] == "phase"
+                         else metric_name(row["id"], lang)) for row in result["metrics"]}
+    # Chinese glyphs are double-width in a terminal, so pad by display width, not len().
+    width = max([_width(n) for n in names.values()] + [_width(ui("cmp_metric", lang))])
+
+    lines.append(f"{_pad(ui('cmp_metric', lang), width)}  {ui('cmp_delta', lang):>8}"
+                 f"{ui('cmp_interval', lang):>21} {ui('cmp_improved', lang):>10}"
+                 f" {ui('cmp_noise', lang):>9}  {ui('cmp_verdict', lang)}")
 
     for row in result["metrics"]:
-        name = phase_name(row["id"], lang) if row["group"] == "phase" else metric_name(row["id"], lang)
         level = f"±{row['noise']:.3f}" if row["noise"] is not None else "—"
-        verdict = ui(f"verdict_{row['verdict']}", lang) if row["verdict"] != "no_baseline" else ui("noise_unknown", lang)
-        mark = VERDICT_MARK.get(row["verdict"], "")
+        verdict = (ui("noise_unknown", lang) if row["verdict"] == "no_baseline"
+                   else ui(f"verdict_{row['verdict']}", lang))
+        mark = VERDICT_MARK.get(row["verdict"], " ")
         lines.append(
-            f"  {name:16} {row['delta']:+9.3f} ({row['low']:+.3f}, {row['high']:+.3f}) "
-            f"{row['improved']:>5}/{row['n']:<5} {level:>11}  {mark} {verdict}")
+            f"{_pad(names[row['id']], width)}  {row['delta']:+8.3f}"
+            f"  ({row['low']:+.3f}, {row['high']:+.3f})"
+            f" {row['improved']:>4}/{row['n']:<4}"
+            f" {level:>9}  {mark} {verdict}")
     return "\n".join(lines)
+
+
+def _width(text: str) -> int:
+    """Terminal columns a string occupies. CJK glyphs take two."""
+    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in text)
+
+
+def _pad(text: str, width: int) -> str:
+    return "  " + text + " " * max(0, width - _width(text))
