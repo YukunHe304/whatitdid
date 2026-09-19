@@ -18,6 +18,7 @@ export default function App() {
   const [compare, setCompare] = useState<CompareResult | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<View | null>(null);
 
   useEffect(() => {
     api.config().then(setConfig).catch((e) => setError(String(e)));
@@ -35,6 +36,7 @@ export default function App() {
 
   const openDemo = useCallback(async (which: "agents" | "compare") => {
     setError(null);
+    setLoading(which);
     try {
       if (which === "agents") {
         setAgents(await api.demoAgents());
@@ -45,6 +47,8 @@ export default function App() {
       }
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setLoading(null);
     }
   }, []);
 
@@ -77,11 +81,22 @@ export default function App() {
   }
   if (!config || !s) return <div className="main" />;
 
-  const tabs: { id: View; label: string; enabled: boolean }[] = [
-    { id: "home", label: s.ui.nav_start, enabled: true },
-    { id: "agents", label: s.ui.nav_agents, enabled: !!agents },
-    { id: "compare", label: s.ui.nav_compare, enabled: !!compare },
-    { id: "report", label: report ? report.agent : s.ui.nav_report, enabled: !!report },
+  // A nav item that needs data loads it when clicked. Leaving them disabled until the
+  // visitor happened to click the right card first meant three of four were dead on
+  // arrival, with nothing saying why.
+  const go = (id: View) => {
+    if (id === "agents" && !agents) return void openDemo("agents");
+    if (id === "compare" && !compare) return void openDemo("compare");
+    setView(id);
+  };
+
+  const tabs: { id: View; label: string }[] = [
+    { id: "home", label: s.ui.nav_start },
+    { id: "agents", label: s.ui.nav_agents },
+    { id: "compare", label: s.ui.nav_compare },
+    // Nothing to show until a run has been opened or profiled, so it is absent rather
+    // than present and dead.
+    ...(report ? [{ id: "report" as View, label: report.agent }] : []),
   ];
 
   return (
@@ -99,10 +114,11 @@ export default function App() {
             <button
               key={t.id}
               aria-current={view === t.id}
-              disabled={!t.enabled}
-              onClick={() => t.enabled && setView(t.id)}
+              aria-busy={loading === t.id}
+              onClick={() => go(t.id)}
             >
               {t.label}
+              {loading === t.id && <i className="dots" aria-hidden />}
             </button>
           ))}
         </div>
