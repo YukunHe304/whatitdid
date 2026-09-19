@@ -157,6 +157,7 @@ UI: dict[str, dict[str, str]] = {
     "land_path": {"en": "…or a path on this machine", "zh": "……或者本机上的一个路径"},
     "land_go": {"en": "Profile", "zh": "开始体检"},
     "land_labelling": {"en": "labelling {done} steps", "zh": "正在标注 {done} 步"},
+    "land_saved": {"en": "Profiled in this session", "zh": "这次会话里体检过的"},
     "land_q_lede": {
         "en": "Six questions per step. One names what kind of move it was and changes with the "
               "domain; the other five are the same for every domain, so a coding agent and an ops "

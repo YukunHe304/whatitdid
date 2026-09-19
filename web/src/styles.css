@@ -246,6 +246,12 @@ h2 {
   color: var(--link); cursor: pointer; font: inherit;
 }
 .finding .turns button:hover { text-decoration: underline; }
+.finding.saved {
+  border: 0; border-left: 3px solid var(--link); width: 100%; text-align: left;
+  cursor: pointer; font: inherit; color: inherit;
+}
+.finding.saved:hover { background: var(--paper); }
+.finding.saved .meta { font: 11px/1.6 var(--mono); color: var(--faint); margin-left: 8px; }
 
 /* ---- step list --------------------------------------------------------- */
 

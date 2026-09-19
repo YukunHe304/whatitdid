@@ -19,9 +19,11 @@ export default function App() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<View | null>(null);
+  const [saved, setSaved] = useState<{ id: string; agent: string }[]>([]);
 
   useEffect(() => {
     api.config().then(setConfig).catch((e) => setError(String(e)));
+    api.reports().then(setSaved).catch(() => setSaved([]));
   }, []);
 
   useEffect(() => {
@@ -66,6 +68,7 @@ export default function App() {
     try {
       setReport(await api.report(id));
       setView("report");
+      api.reports().then(setSaved).catch(() => {});
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
     }
@@ -136,7 +139,8 @@ export default function App() {
       <main className="main">
         {error && <p className="err">{error}</p>}
         {view === "home" && (
-          <Landing config={config} s={s} onDemo={openDemo} onProfiled={openProfiled} />
+          <Landing config={config} s={s} onDemo={openDemo} onProfiled={openProfiled}
+                   saved={saved} />
         )}
         {view === "agents" && agents && <AgentsView agents={agents} s={s} onOpen={openAgent} />}
         {view === "compare" && compare && <CompareView result={compare} s={s} />}

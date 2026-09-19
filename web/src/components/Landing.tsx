@@ -11,11 +11,13 @@ export function Landing({
   s,
   onDemo,
   onProfiled,
+  saved = [],
 }: {
   config: Config;
   s: Strings;
   onDemo: (which: "agents" | "compare") => void;
   onProfiled: (id: string) => void;
+  saved?: { id: string; agent: string }[];
 }) {
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
@@ -200,6 +202,21 @@ export function Landing({
             </p>
           )}
           {error && <p className="err">{error}</p>}
+        </>
+      )}
+
+      {saved.length > 0 && (
+        <>
+          <h2>{s.ui.land_saved}</h2>
+          <div className="findings">
+            {saved.map((r) => (
+              <button key={r.id} className="finding saved" onClick={() => onProfiled(r.id)}>
+                <span className="text">
+                  <b>{r.agent}</b> <span className="meta">{r.id}</span>
+                </span>
+              </button>
+            ))}
+          </div>
         </>
       )}
 
