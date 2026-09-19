@@ -125,6 +125,7 @@ export function ReportView({ report, s }: { report: Report; s: Strings }) {
         <span>{report.labeler}</span>
       </div>
 
+      <h2>{s.ui.where_steps_went}</h2>
       <Ribbon turns={report.per_turn} phases={phases} selected={selected} onSelect={jump} />
       <div className="ribbon-rule" />
       <div className="ribbon-scale">
@@ -133,6 +134,7 @@ export function ReportView({ report, s }: { report: Report; s: Strings }) {
       </div>
       <div style={{ marginTop: 14 }}>
         <Legend phases={phases} mix={report.mix} names={s.phases} />
+        <p className="lede" style={{ fontSize: 13, marginTop: 8 }}>{s.ui.where_note}</p>
       </div>
 
       {failures > 0 && (
@@ -154,12 +156,16 @@ export function ReportView({ report, s }: { report: Report; s: Strings }) {
         </p>
       )}
 
-      <h2>{s.ui.where_steps_went}</h2>
+      <h2>{s.ui.per_step_measures}</h2>
+      <p className="lede" style={{ marginBottom: 14 }}>{s.ui.per_step_note}</p>
       <div className="stats">
         {Object.entries(report.stats).map(([k, v]) => (
           <div className="stat" key={k} title={s.metric_help[k] ?? ""}>
             <b>{v.toFixed(2)}</b>
-            <span>{s.metrics[k] ?? k}</span>
+            <span>
+              {s.metrics[k] ?? k}
+              <i className="scale">{k === "targeting" ? s.ui.scale_0_4 : s.ui.scale_0_1}</i>
+            </span>
           </div>
         ))}
       </div>

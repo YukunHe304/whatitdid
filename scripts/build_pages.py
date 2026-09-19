@@ -63,6 +63,10 @@ def main() -> int:
     for lang in i18n.LANGS:
         write(DOCS / "api" / "strings" / lang, i18n.strings(lang))
 
+    # Nothing was profiled here and nothing can be; an empty list keeps the startup call
+    # from 404ing on every visit.
+    write(DOCS / "api" / "reports", [])
+
     agents = json.loads((DEMO / "agents.json").read_text(encoding="utf-8"))
     write(DOCS / "api" / "demo" / "agents", agents)
 

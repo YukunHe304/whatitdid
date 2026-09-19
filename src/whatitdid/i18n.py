@@ -91,6 +91,17 @@ UI: dict[str, dict[str, str]] = {
     "steps": {"en": "steps", "zh": "步"},
     "questions": {"en": "question set", "zh": "问题集"},
     "where_steps_went": {"en": "Where the steps went", "zh": "步数花在哪"},
+    "where_note": {
+        "en": "One question with one answer per step, so these are shares of the run and add to 100%.",
+        "zh": "一道单选题，每步只有一个答案，所以这些是占比，加起来是 100%。"},
+    "per_step_measures": {"en": "What each step was like", "zh": "每一步的性质"},
+    "per_step_note": {
+        "en": "Six separate questions asked of every step, then averaged. A step can be "
+              "several of these at once, so they are not shares and do not add up.",
+        "zh": "六道分开的题，每一步都问一遍，然后在所有步上取平均。"
+              "一步可以同时符合好几条，所以它们不是占比，也不相加。"},
+    "scale_0_1": {"en": "0–1", "zh": "0–1"},
+    "scale_0_4": {"en": "0–4", "zh": "0–4"},
     "worth_acting_on": {"en": "Worth acting on", "zh": "该动手的地方"},
     "step_by_step": {"en": "Step by step", "zh": "逐步"},
     "nothing_found": {"en": "Nothing obviously wrong.", "zh": "没有发现明显问题。"},
