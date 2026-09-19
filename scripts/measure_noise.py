@@ -1,24 +1,24 @@
 """Measure the repeat-noise floor that ships with the package.
 
-Same agent, same config, same tasks, run twice. Whatever the metrics move by is the floor
-a real change has to clear. Without this number every comparison is guesswork dressed up
-in a confidence interval.
+Same agent, same config, same tasks, run more than once. Whatever the metrics move by is
+the floor a real change has to clear. Without this number every comparison is guesswork
+dressed up in a confidence interval.
 
-    python scripts/measure_noise.py --out src/agentvitals/data/noise_reference.json
+    python scripts/measure_noise.py --out src/agentvitals/data/noise_reference.json \
+        --run <dir-of-run-1> --run <dir-of-run-2> --label "deepseek-flash effort=max"
 
-This is a build script. It needs a Jev key and a local directory of benchmark runs; the
-JSON it produces is committed so users get a fallback baseline out of the box.
+Each --run is a directory that will be walked for per-task session files. Tasks are paired
+across runs by the directory name they sit under.
 
 WHAT COUNTS AS A REPEAT, because getting this wrong is worse than having no baseline.
-Both runs must have completed. An aborted run is shorter, and a shorter run has a
+Every arm must have completed. An aborted run is shorter, and a shorter run has a
 different behaviour profile for reasons that have nothing to do with randomness — you
 would be measuring truncation and shipping it as noise.
 
-The first attempt at this used `lite21_max_final/superseded/` as the second arm and had
-to be thrown away: those runs were superseded precisely because they died early. Step
-counts came out 12 vs 74, 116 vs 75, 33 vs 75, 41 vs 80 for the same problem and config,
-and several rows had empty success fields. `check_completed` below is what stops that
-from happening again silently.
+The first attempt at this used a `superseded/` directory as the second arm and had to be
+thrown away: those runs were superseded precisely because they died early. Step counts
+came out 12 vs 74, 116 vs 75 for the same problem and config. `check_even` below is what
+stops that happening again silently.
 """
 
 from __future__ import annotations
@@ -33,101 +33,122 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 
 from agentvitals import noise, profile  # noqa: E402
 from agentvitals.labeler import Jev  # noqa: E402
-
-ROOT = pathlib.Path(
-    "/Users/yukun/Documents/ChatGPT/research/output/sregym-diagnosis-ladder-20260916/oncluster/lite21_max_final")
-TRANSCRIPT = "baseline_transcript.jsonl"
+from agentvitals.watch import finished_runs, session_in  # noqa: E402
 
 
-def find_pairs(root: pathlib.Path) -> list[tuple[str, pathlib.Path, pathlib.Path]]:
-    """Problems that were run twice under the same configuration."""
-    pairs = []
-    for old_dir in sorted((root / "superseded").glob("*/")):
-        problem = old_dir.name
-        new_dir = root / "problems" / problem
-        old = next(old_dir.rglob(TRANSCRIPT), None)
-        new = next(new_dir.rglob(TRANSCRIPT), None) if new_dir.exists() else None
-        if old and new:
-            pairs.append((problem, old, new))
-    return pairs
+def collect(root: pathlib.Path) -> dict[str, pathlib.Path]:
+    """Task id -> its session file, for every finished task under `root`."""
+    out = {}
+    for problem, run_dir in finished_runs(root):
+        session = session_in(run_dir)
+        if session is not None:
+            out[problem] = session
+    return out
 
 
-def check_completed(pairs, tolerance: float = 0.5) -> list[str]:
-    """Reject pairs where one arm is obviously a truncated run.
+def check_even(runs: list[dict[str, pathlib.Path]], names: list[str],
+               tolerance: float = 0.5) -> dict[str, str]:
+    """Reject tasks where one arm is obviously a truncated run.
 
-    Two completed runs of the same config wander; they do not differ by 6x in length.
-    Anything that far apart is an aborted run, and folding it in would inflate the floor
-    with something that is not noise at all.
+    Two completed runs of the same config wander; they do not differ several-fold in
+    length. Anything that far apart is an aborted run, and folding it in would inflate the
+    floor with something that is not noise at all.
     """
-    complaints = []
-    for problem, old, new in pairs:
-        a = sum(1 for _ in old.open(encoding="utf-8", errors="ignore"))
-        b = sum(1 for _ in new.open(encoding="utf-8", errors="ignore"))
-        if min(a, b) == 0 or min(a, b) / max(a, b) < tolerance:
-            complaints.append(f"{problem}: {a} vs {b} transcript lines — one arm looks truncated")
+    shared = sorted(set.intersection(*[set(r) for r in runs]))
+    complaints = {}
+    for task in shared:
+        sizes = [sum(1 for _ in r[task].open(encoding="utf-8", errors="ignore")) for r in runs]
+        if min(sizes) == 0 or min(sizes) / max(sizes) < tolerance:
+            pairs = ", ".join(f"{n}={s}" for n, s in zip(names, sizes))
+            complaints[task] = f"{pairs} transcript lines — one arm looks truncated"
     return complaints
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", type=pathlib.Path, default=ROOT)
+    ap.add_argument("--run", type=pathlib.Path, action="append", required=True,
+                    help="a directory of runs under one configuration; pass it twice or more")
     ap.add_argument("--out", type=pathlib.Path, required=True)
+    ap.add_argument("--label", default="", help="what configuration these runs share")
     ap.add_argument("--questions", default="sre.v1")
     ap.add_argument("--concurrency", type=int, default=10)
+    ap.add_argument("--drop-uneven", action="store_true",
+                    help="exclude tasks where one arm looks truncated and measure on the rest")
     ap.add_argument("--allow-uneven", action="store_true",
-                    help="profile pairs even when one arm looks truncated (you should not)")
+                    help="keep tasks where one arm looks truncated (you should not)")
     args = ap.parse_args()
 
-    pairs = find_pairs(args.root)
-    if len(pairs) < 3:
-        print(f"only {len(pairs)} repeated problems found — need at least 3", file=sys.stderr)
+    if len(args.run) < 2:
+        print("need at least two --run directories", file=sys.stderr)
         return 1
 
-    complaints = check_completed(pairs)
+    found = [collect(root) for root in args.run]
+    names = [root.name for root in args.run]
+    for name, tasks in zip(names, found):
+        print(f"{name}: {len(tasks)} finished tasks")
+
+    shared = sorted(set.intersection(*[set(f) for f in found]))
+    if len(shared) < 3:
+        print(f"only {len(shared)} tasks appear in every run — need at least 3", file=sys.stderr)
+        return 1
+
+    complaints = check_even(found, names)
+    dropped: list[str] = []
     if complaints and not args.allow_uneven:
-        print("these pairs are not clean repeats:", file=sys.stderr)
-        for line in complaints:
-            print(f"  {line}", file=sys.stderr)
-        print("\nA truncated arm measures truncation, not run-to-run noise. Point --root at a\n"
-              "directory where the same config completed twice, or pass --allow-uneven if you\n"
-              "genuinely know better.", file=sys.stderr)
-        return 1
+        print(f"\n{len(complaints)} of {len(shared)} shared tasks are not clean repeats:")
+        for task, why in list(complaints.items())[:10]:
+            print(f"  {task}: {why}")
+        if not args.drop_uneven:
+            print("\nA truncated arm measures truncation, not run-to-run noise. Re-run with\n"
+                  "--drop-uneven to exclude these and measure on the rest, or --allow-uneven if\n"
+                  "you genuinely know better.", file=sys.stderr)
+            return 1
+        dropped = sorted(complaints)
+        shared = [t for t in shared if t not in complaints]
+        print(f"  dropping them; measuring on the remaining {len(shared)}")
+        if len(shared) < 3:
+            print("too few clean tasks left", file=sys.stderr)
+            return 1
 
-    print(f"{len(pairs)} problems were run twice under the same config:")
-    for problem, _, _ in pairs:
-        print(f"  {problem}")
-
+    print(f"\n{len(shared)} tasks run {len(found)}x under the same config")
     labeler = Jev()
-    runs: list[dict[str, dict]] = [{}, {}]
+    runs: list[dict[str, dict]] = [{} for _ in found]
     started = time.monotonic()
-    for problem, old, new in pairs:
-        for index, path in ((0, old), (1, new)):
-            t0 = time.monotonic()
-            rep = profile(path, labeler=labeler, questions=args.questions,
+    for task in shared:
+        line = f"  {task:50}"
+        for index, tasks in enumerate(found):
+            rep = profile(tasks[task], labeler=labeler, questions=args.questions,
                           workers=args.concurrency)
-            runs[index][problem] = rep.to_dict()
-            print(f"  run{index + 1} {problem:48} {rep.to_dict()['n_turns']:>3} steps "
-                  f"{time.monotonic() - t0:5.1f}s")
+            runs[index][task] = rep.to_dict()
+            line += f"  {rep.to_dict()['n_turns']:>4}"
+        print(line, flush=True)
 
     measured = noise.estimate(runs)
     failures = labeler.failures.to_dict()
-    print(f"\n{time.monotonic() - started:.0f}s total, {failures['total']} failed calls")
+    print(f"\n{time.monotonic() - started:.0f}s, {failures['total']} failed calls")
+    if failures["total"]:
+        print(f"  {failures['by_cause']}")
 
     payload = {
         args.questions: {
             "metrics": {k: round(v, 4) for k, v in sorted(measured["metrics"].items())},
             "about": (
-                f"Repeat-noise floor: the largest mean paired shift seen between two runs of "
-                f"the SAME configuration, over {len(pairs)} SREGym-Lite problems "
-                f"(baseline agent, deepseek-flash, reasoning effort max). "
-                f"A change smaller than this is not a finding. "
+                f"Repeat-noise floor: the largest mean paired shift between two runs of the "
+                f"SAME configuration ({args.label or 'unspecified'}) over {len(shared)} "
+                f"SREGym-Lite problems"
+                + (f" ({len(dropped)} more excluded: one arm was truncated)" if dropped else "")
+                + f". A change smaller than this is not a finding. "
                 f"Measured {time.strftime('%Y-%m-%d')} from {measured['n_pairs']} run pair(s). "
-                f"Only {len(pairs)} problems, so treat it as provisional — if you have your own "
-                f"repeated runs, pass them with --repeat and use yours instead."
+                f"These are one agent on one benchmark — if you have your own repeated runs, "
+                f"pass them with --repeat and use yours instead."
             ),
-            "n_problems": len(pairs),
+            "label": args.label,
+            "n_problems": len(shared),
+            "dropped_problems": dropped,
+            "n_runs": len(found),
             "n_pairs": measured["n_pairs"],
-            "problems": [p for p, _, _ in pairs],
+            "runs": names,
+            "problems": shared,
             "measured_on": time.strftime("%Y-%m-%d"),
         }
     }

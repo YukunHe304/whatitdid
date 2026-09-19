@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e ".[dev]"
+      # The suite is offline by design: every test runs against vendored fixtures and a
+      # fake labeler, so CI never needs a key and never spends anyone's credits.
+      - run: pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm --prefix web ci
+      - run: npm --prefix web run build
+      # The build lands in src/agentvitals/static and is committed, so a `pip install`
+      # ships a working `serve`. If the two ever diverge, the tree is dirty here.
+      - name: the committed build must match the sources
+        run: |
+          if ! git diff --quiet -- src/agentvitals/static; then
+            echo "src/agentvitals/static is stale — run 'npm --prefix web run build' and commit it"
+            git diff --stat -- src/agentvitals/static
+            exit 1
+          fi
+
+  package:
+    runs-on: ubuntu-latest
+    needs: [test, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      # A wheel that installs but cannot serve its own UI is the failure mode worth
+      # guarding: check the static assets actually made it in.
+      - name: the wheel must contain the web app
+        run: |
+          python - <<'PY'
+          import glob, zipfile, sys
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          need = ["agentvitals/static/index.html", "agentvitals/questions/sre.v1.json",
+                  "agentvitals/questions/code.v1.json", "agentvitals/data/demo/agents.json"]
+          missing = [n for n in need if n not in names]
+          if missing:
+              sys.exit(f"missing from {wheel}: {missing}")
+          print(f"{wheel}: {len(names)} files, all required paths present")
+          PY
+      - run: pip install dist/*.whl && agentvitals --help
