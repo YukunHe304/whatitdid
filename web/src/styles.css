@@ -299,6 +299,10 @@ h2 {
 .table-scroll { overflow-x: auto; margin-right: calc(var(--gutter) * -1); padding-right: var(--gutter); }
 
 .cmp { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+/* Without a floor the table shrinks to the viewport and squeezes the metric name to one
+ * glyph per line. Give it a width to overflow with, and let .table-scroll carry it. */
+.cmp { min-width: 680px; }
+.cmp td:first-child, .cmp th:first-child { white-space: nowrap; padding-right: 16px; }
 .cmp th {
   text-align: left;
   font: 10px/1 var(--mono);
