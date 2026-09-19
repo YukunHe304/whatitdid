@@ -40,12 +40,9 @@ export function AgentsView({
 
   return (
     <>
-      <span className="eyebrow">one problem · {names.length} agents</span>
+      <span className="eyebrow">{s.ui.agents_eyebrow.replace("{n}", String(names.length))}</span>
       <h1>service_port_conflict</h1>
-      <p className="lede">
-        The same fault, handed to {names.length} CLI agents. Each row is one run, read left to
-        right: colour is what the step was doing, height is how sure the labeler was.
-      </p>
+      <p className="lede">{s.ui.agents_lede.replace("{n}", String(names.length))}</p>
 
       <h2>{s.ui.step_by_step}</h2>
       {names.map((name) => {
@@ -56,7 +53,7 @@ export function AgentsView({
               <button className="linkish" onClick={() => onOpen(name)}>
                 {name}
               </button>
-              <small>{report.model ?? "model not recorded"}</small>
+              <small>{report.model ?? s.ui.agents_no_model}</small>
             </div>
             <div className="trace">
               <Ribbon

@@ -78,10 +78,10 @@ export default function App() {
   if (!config || !s) return <div className="main" />;
 
   const tabs: { id: View; label: string; enabled: boolean }[] = [
-    { id: "home", label: "start", enabled: true },
-    { id: "agents", label: "agents", enabled: !!agents },
-    { id: "compare", label: "compare", enabled: !!compare },
-    { id: "report", label: report ? report.agent : "report", enabled: !!report },
+    { id: "home", label: s.ui.nav_start, enabled: true },
+    { id: "agents", label: s.ui.nav_agents, enabled: !!agents },
+    { id: "compare", label: s.ui.nav_compare, enabled: !!compare },
+    { id: "report", label: report ? report.agent : s.ui.nav_report, enabled: !!report },
   ];
 
   return (

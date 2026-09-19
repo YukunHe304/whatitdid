@@ -71,30 +71,20 @@ export function Landing({
 
   return (
     <>
-      <span className="eyebrow">what the run actually did</span>
+      <span className="eyebrow">{s.ui.land_eyebrow}</span>
       <h1>agentvitals</h1>
-      <p className="lede">
-        Read any CLI agent's session file and label every step: what it was doing, whether it
-        brought anything new, whether it changed something and then checked. Then compare two
-        rounds against the noise a re-run produces anyway.
-      </p>
+      <p className="lede">{s.ui.land_lede}</p>
 
       <div className="entries">
         <button className="entry" onClick={() => onDemo("agents")}>
           <span className="step-no">01</span>
-          <b>Look at an example</b>
-          <span>
-            Seven CLI agents on the same fault, 153 steps, real labels. Nothing to install, no
-            key.
-          </span>
+          <b>{s.ui.land_demo_title}</b>
+          <span>{s.ui.land_demo_body}</span>
         </button>
         <button className="entry" onClick={() => onDemo("compare")}>
           <span className="step-no">02</span>
-          <b>See two rounds compared</b>
-          <span>
-            The same agent at two settings over 21 problems. The score says nothing; the
-            behaviour says three things.
-          </span>
+          <b>{s.ui.land_cmp_title}</b>
+          <span>{s.ui.land_cmp_body}</span>
         </button>
         <button
           className="entry"
@@ -102,26 +92,18 @@ export function Landing({
           onClick={() => fileInput.current?.click()}
         >
           <span className="step-no">03</span>
-          <b>Profile your own run</b>
-          <span>
-            {config.demo_only
-              ? "Run `agentvitals serve` to use your own trajectories."
-              : "Drop a session file from Claude Code, Codex, Gemini, Copilot, OpenCode or Stratus."}
-          </span>
+          <b>{s.ui.land_own_title}</b>
+          <span>{config.demo_only ? s.ui.land_own_disabled : s.ui.land_own_body}</span>
         </button>
       </div>
 
       {!config.demo_only && (
         <>
-          <h2>Profile a run</h2>
+          <h2>{s.ui.land_profile_h}</h2>
 
           {!hasKey && (
             <div className="note alert">
-              <p style={{ margin: "0 0 10px" }}>
-                Labelling needs a TypeSafe API key. It is written to{" "}
-                <code>~/.config/agentvitals/typesafe.env</code> with owner-only permissions and
-                never leaves this machine.
-              </p>
+              <p style={{ margin: "0 0 10px" }}>{s.ui.land_key_note}</p>
               <div className="row">
                 <input
                   className="field"
@@ -143,7 +125,7 @@ export function Landing({
                     }
                   }}
                 >
-                  Save key
+                  {s.ui.land_key_save}
                 </button>
               </div>
             </div>
@@ -163,9 +145,9 @@ export function Landing({
               if (file) void submitFile(file);
             }}
           >
-            Drop a session file here, or{" "}
+            {s.ui.land_drop}{" "}
             <label>
-              choose one
+              {s.ui.land_choose}
               <input
                 ref={fileInput}
                 type="file"
@@ -176,13 +158,13 @@ export function Landing({
                 }}
               />
             </label>
-            . The format is detected from the contents, not the filename.
+            . {s.ui.land_detect}
           </div>
 
           <div className="row" style={{ marginTop: 12 }}>
             <input
               className="field"
-              placeholder="…or a path on this machine"
+              placeholder={s.ui.land_path}
               value={path}
               onChange={(e) => setPath(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void submitPath()}
@@ -200,7 +182,7 @@ export function Landing({
               ))}
             </select>
             <button className="btn" onClick={() => void submitPath()} disabled={!path.trim() || !!busy}>
-              Profile
+              {s.ui.land_go}
             </button>
           </div>
 
@@ -211,8 +193,10 @@ export function Landing({
           )}
           {busy && (
             <p className="meta" style={{ marginTop: 8 }}>
-              labelling {busy.done}
-              {busy.total ? `/${busy.total}` : ""} steps
+              {s.ui.land_labelling.replace(
+                "{done}",
+                busy.total ? `${busy.done}/${busy.total}` : String(busy.done),
+              )}
             </p>
           )}
           {error && <p className="err">{error}</p>}
@@ -220,11 +204,7 @@ export function Landing({
       )}
 
       <h2>{s.ui.questions}</h2>
-      <p className="lede">
-        Six questions per step. One names what kind of move it was and changes with the domain;
-        the other five are the same for every domain, so a coding agent and an ops agent stay
-        comparable on those.
-      </p>
+      <p className="lede">{s.ui.land_q_lede}</p>
       <div className="stats" style={{ marginTop: 14 }}>
         {Object.entries(s.metrics)
           .filter(([k]) => k !== "labeler_confidence")

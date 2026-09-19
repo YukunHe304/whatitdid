@@ -41,10 +41,10 @@ export function CompareView({ result, s }: { result: CompareResult; s: Strings }
   const source = result.noise.source;
   const sourceNote =
     source === "measured"
-      ? `Repeat noise measured from ${result.noise.n_runs} same-config runs of your own.`
+      ? s.ui.cmp_src_measured.replace("{n}", String(result.noise.n_runs ?? 0))
       : source === "reference"
-        ? "Repeat noise from the values shipped with agentvitals — someone else's agent on someone else's tasks."
-        : "No repeat baseline. Run the same config twice and pass it with --repeat to get one.";
+        ? s.ui.cmp_src_reference
+        : s.ui.cmp_src_none;
 
   const verdictLabel: Record<string, string> = {
     above_noise: s.ui.verdict_above_noise,
@@ -56,10 +56,12 @@ export function CompareView({ result, s }: { result: CompareResult; s: Strings }
   const real = result.metrics.filter((r) => r.verdict === "above_noise").length;
   const headline =
     source === "none"
-      ? `${result.metrics.length} metrics, no verdict`
+      ? s.ui.cmp_none_h.replace("{n}", String(result.metrics.length))
       : real === 0
-        ? "Nothing here clears the noise"
-        : `${real} of ${result.metrics.length} metrics clear the noise`;
+        ? s.ui.cmp_zero_h
+        : s.ui.cmp_some_h
+            .replace("{real}", String(real))
+            .replace("{n}", String(result.metrics.length));
 
   return (
     <>
