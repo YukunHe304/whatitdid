@@ -2,15 +2,15 @@
 
 **Read any CLI agent's session file and report what the run actually did — step by step, with error bars.**
 
-[**Live demo**](https://yukunhe304.github.io/whatitdid/) · [中文](README.zh.md) ·
+[**Live demo**](https://yukunhe304.github.io/whatitdid/) · [中文](https://github.com/YukunHe304/whatitdid/blob/main/README.zh.md) ·
 [![ci](https://github.com/YukunHe304/whatitdid/actions/workflows/ci.yml/badge.svg)](https://github.com/YukunHe304/whatitdid/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/YukunHe304/whatitdid/blob/main/LICENSE)
 
 ```bash
 uvx whatitdid demo        # opens the browser on real bundled data. No API key needed.
 ```
 
-![Seven CLI agents on the same fault, each run drawn as a trace of labelled steps](media/agents.png)
+![Seven CLI agents on the same fault, each run drawn as a trace of labelled steps](https://raw.githubusercontent.com/YukunHe304/whatitdid/main/media/agents.png)
 
 ---
 
@@ -205,4 +205,4 @@ you how the agent got there.
 
 Apache-2.0. The trajectory converter derives from
 [Harbor](https://github.com/harbor-framework/harbor) (Apache-2.0) and
-[SREGym](https://github.com/SREGym/SREGym) (MIT); see [NOTICE](NOTICE).
+[SREGym](https://github.com/SREGym/SREGym) (MIT); see [NOTICE](https://github.com/YukunHe304/whatitdid/blob/main/NOTICE).

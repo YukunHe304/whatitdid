@@ -2,15 +2,15 @@
 
 **读任何一个 CLI agent 的会话文件，告诉你这次运行实际做了什么——逐步，带误差。**
 
-[**在线演示**](https://yukunhe304.github.io/whatitdid/) · [English](README.md) ·
+[**在线演示**](https://yukunhe304.github.io/whatitdid/) · [English](https://github.com/YukunHe304/whatitdid/blob/main/README.md) ·
 [![ci](https://github.com/YukunHe304/whatitdid/actions/workflows/ci.yml/badge.svg)](https://github.com/YukunHe304/whatitdid/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/YukunHe304/whatitdid/blob/main/LICENSE)
 
 ```bash
 uvx whatitdid demo        # 用随包的真实数据打开浏览器，不需要 API key
 ```
 
-![七个 CLI agent 跑同一个故障，每次运行画成一条按步打过标签的轨迹](media/agents.png)
+![七个 CLI agent 跑同一个故障，每次运行画成一条按步打过标签的轨迹](https://raw.githubusercontent.com/YukunHe304/whatitdid/main/media/agents.png)
 
 ---
 
@@ -191,4 +191,4 @@ print(compare(before, after, repeats=[before_again]))
 
 Apache-2.0。轨迹转换器衍生自
 [Harbor](https://github.com/harbor-framework/harbor)（Apache-2.0）与
-[SREGym](https://github.com/SREGym/SREGym)（MIT），见 [NOTICE](NOTICE)。
+[SREGym](https://github.com/SREGym/SREGym)（MIT），见 [NOTICE](https://github.com/YukunHe304/whatitdid/blob/main/NOTICE)。

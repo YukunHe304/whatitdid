@@ -1,0 +1,96 @@
+name: release
+
+# Publishes to PyPI when a GitHub release is published.
+#
+# There is no API token anywhere in this repository, and there does not need to be.
+# PyPI trusted publishing lets this workflow prove its identity to PyPI with a
+# short-lived OIDC token that GitHub mints for this repo, this workflow file and this
+# environment. Nothing to store, nothing to leak, nothing to rotate.
+#
+# One-time setup on PyPI, before the first release:
+#   https://pypi.org/manage/account/publishing/  ->  add a pending publisher
+#     PyPI Project Name: whatitdid
+#     Owner:             YukunHe304
+#     Repository name:   whatitdid
+#     Workflow name:     release.yml
+#     Environment name:  pypi
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The web app is committed, but building it here means a release can never ship a
+      # stale UI just because someone forgot to rebuild before tagging.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm --prefix web ci
+      - run: npm --prefix web run build
+      - name: the committed build must match the sources
+        run: |
+          if ! git diff --quiet -- src/whatitdid/static; then
+            echo "src/whatitdid/static is stale — rebuild and commit before releasing"
+            git diff --stat -- src/whatitdid/static
+            exit 1
+          fi
+
+      - run: pip install build twine
+      - run: python -m build
+      - run: python -m twine check dist/*
+
+      # A release that installs but cannot serve its own UI or run its own tests is the
+      # failure worth catching before it is permanent — PyPI versions cannot be deleted.
+      - name: the wheel must carry the UI and the data
+        run: |
+          python - <<'PY'
+          import glob, zipfile, sys
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          need = ["whatitdid/static/index.html",
+                  "whatitdid/questions/sre.v1.json",
+                  "whatitdid/questions/code.v1.json",
+                  "whatitdid/questions/_shared.json",
+                  "whatitdid/data/demo/agents.json",
+                  "whatitdid/data/demo/compare.json"]
+          missing = [n for n in need if n not in names]
+          if missing:
+              sys.exit(f"missing from {wheel}: {missing}")
+          print(f"{wheel}: {len(names)} files, all required paths present")
+          PY
+
+      - name: the sdist must be able to test itself
+        run: |
+          mkdir -p /tmp/sdist && tar -xzf dist/*.tar.gz -C /tmp/sdist
+          cd /tmp/sdist/whatitdid-*
+          pip install ".[dev]"
+          pytest -q
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # the only credential involved; minted per run, expires in minutes
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

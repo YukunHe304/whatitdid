@@ -1,0 +1,14 @@
+# The sdist is meant to be reproducible: the tests are offline and run against these real
+# agent session files, so shipping the tests without them would guarantee 30 failures for
+# anyone who downloads it.
+include LICENSE NOTICE README.md README.zh.md
+recursive-include tests *.py
+recursive-include tests/fixtures *
+recursive-include src/whatitdid/questions *.json
+recursive-include src/whatitdid/data *.json
+recursive-include src/whatitdid/static *
+exclude .gitignore
+prune docs
+prune web
+prune media
+prune scripts
