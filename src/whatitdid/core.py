@@ -16,6 +16,7 @@ import pathlib
 from typing import Any, Callable
 
 from .findings import findings
+from .fit import assess
 from .formats import convert, detect_agent
 from .labeler import Jev, QuestionSet, load_question_set
 
@@ -55,6 +56,7 @@ class Report:
     questions: str
     phases: list[str] = dataclasses.field(default_factory=list)
     label_failures: dict = dataclasses.field(default_factory=dict)
+    fit: dict = dataclasses.field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """What a program should read. Enough to compare two runs without re-labelling.
@@ -70,7 +72,7 @@ class Report:
             "stats": self.findings["stats"],
             "truthfulness": self.truthfulness["rate"],
             "stated": self.truthfulness["stated"], "carried": self.truthfulness["carried"],
-            "label_failures": self.label_failures,
+            "label_failures": self.label_failures, "fit": self.fit,
             "findings": [{"kind": f["kind"], "severity": f["severity"],
                           "turns": f["turns"], "facts": f.get("facts", {})}
                          for f in self.findings["findings"]],
@@ -174,12 +176,16 @@ def profile(session: str | pathlib.Path, *, labeler: Callable | None = None, que
     truth = _truthfulness(rows, labeler, workers) if check_narration else {
         "stated": 0, "carried": 0, "rate": None, "per_turn": {}}
     failures = getattr(labeler, "failures", None)
+    found = findings(labels, phases=qset.phases, roles=qset.roles)
+    # Whether the question set actually fits is computable from the labels we just made,
+    # so every report carries it rather than leaving a bad match invisible.
+    per_turn = [{"phase": l["answers"]["phase"]["probabilities"]} for l in labels]
     return Report(agent=agent, model=model, source=str(session), turns=rows, labels=labels,
-                  truthfulness=truth,
-                  findings=findings(labels, phases=qset.phases, roles=qset.roles),
+                  truthfulness=truth, findings=found,
                   labeler=getattr(labeler, "name", "custom"), questions=qset.id,
                   phases=qset.phases,
-                  label_failures=failures.to_dict() if failures else {})
+                  label_failures=failures.to_dict() if failures else {},
+                  fit=assess(found["mix"], found["stats"], per_turn))
 
 
 def _truthfulness(rows: list[dict], labeler: Callable, workers: int) -> dict:

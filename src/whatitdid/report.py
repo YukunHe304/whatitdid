@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html
 
+from .fit import explain
 from .i18n import DEFAULT_LANG, finding_headline, metric_name, phase_name, ui
 from .serialize import command_of
 
@@ -103,6 +104,10 @@ def render(rep, title: str, summary: str = "", lang: str = DEFAULT_LANG) -> str:
             f'{esc(ui("trust_line", lang, stated=truth["stated"], carried=truth["carried"], rate=rate))} '
             f'{esc(judge)}.</div>')
 
+    misfit = explain(rep.fit, rep.questions, lang) if rep.fit else None
+    misfit_html = (f'<div class="trust" style="border-left-color:#c9b073">{esc(misfit)}</div>'
+                   if misfit else "")
+
     failed = (rep.label_failures or {}).get("total", 0)
     failed_html = ""
     if failed:
@@ -152,7 +157,7 @@ border-radius:8px;padding:13px 16px;margin-bottom:22px;font-size:13px}}
 <h1>{esc(title)}</h1>
 <div class="sub">{subline}</div>
 {f'<div class="summary">{esc(summary)}</div>' if summary else ''}
-{failed_html}{trust_html}
+{misfit_html}{failed_html}{trust_html}
 <h2>{esc(ui("where_steps_went", lang))}</h2>{bar(report['mix'])}
 <div class="stats">{stats}</div>
 <h2>{esc(ui("worth_acting_on", lang))}</h2>{cards or f'<div class="finding"><div class="h">{esc(ui("nothing_found", lang))}</div></div>'}

@@ -8,8 +8,10 @@ import pathlib
 import sys
 import time
 
+from . import detect
 from .compare import compare, format_compare
-from .core import DEFAULT_TASK, profile
+from .core import DEFAULT_TASK, profile, read_turns
+from .fit import explain
 from .i18n import DEFAULT_LANG, LANGS, finding_headline, metric_name
 from .labeler import ChatModel, Jev
 
@@ -26,7 +28,8 @@ def add_labeler_args(ap):
     ap.add_argument("--chat-model", default="deepseek-flash")
     ap.add_argument("--thinking", action="store_true",
                     help="let the chat model think (12x slower, not obviously better labels)")
-    ap.add_argument("--questions", default="sre.v1", help="question set name or path")
+    ap.add_argument("--questions", default=None,
+                    help="question set name or path; detected from the commands when omitted")
     ap.add_argument("--task", default=DEFAULT_TASK)
     ap.add_argument("--concurrency", type=int, default=8)
     ap.add_argument("--no-narration-check", action="store_true",
@@ -51,10 +54,26 @@ def load_summary(path: pathlib.Path) -> dict:
     return out
 
 
+def choose_questions(args, session) -> str:
+    """The domain question has to match the work, so never pick it silently.
+
+    Given --questions, use it. Otherwise look at the commands, say out loud what that
+    suggested and on what evidence, and fall back to the operations set when the commands
+    do not separate the candidates.
+    """
+    if args.questions:
+        return args.questions
+    rows, _agent, _model = read_turns(session)
+    guess = detect.sniff(rows)
+    print(f"  {detect.describe(guess, args.lang)}", file=sys.stderr)
+    return guess["pick"] or "sre.v1"
+
+
 def cmd_run(args) -> int:
     out = args.out or pathlib.Path(f"{args.session.stem}_report.html")
+    questions = choose_questions(args, args.session)
     started = time.monotonic()
-    rep = profile(args.session, labeler=make_labeler(args), questions=args.questions, task=args.task,
+    rep = profile(args.session, labeler=make_labeler(args), questions=questions, task=args.task,
                   workers=args.concurrency, check_narration=not args.no_narration_check,
                   progress=lambda d, n: print(f"\r  {d}/{n}", end="", file=sys.stderr))
     print("", file=sys.stderr)
@@ -70,9 +89,34 @@ def cmd_run(args) -> int:
     failed = (d.get("label_failures") or {}).get("total", 0)
     if failed:
         print(f"  {failed} label calls failed: {d['label_failures']['by_cause']}", file=sys.stderr)
+    misfit = explain(d.get("fit") or {}, d["questions"], args.lang) if d.get("fit") else None
+    if misfit:
+        print(f"  ! {misfit}", file=sys.stderr)
     for f in d["findings"]:
         print(f"  - {finding_headline(f, args.lang)}", file=sys.stderr)
     return 0
+
+
+def cmd_questions(args) -> int:
+    from .questions import check, format_check, propose
+
+    if args.action == "propose":
+        rows, _agent, _model = read_turns(args.session)
+        draft = propose(rows, model=args.chat_model, set_id=args.id)
+        args.out.write_text(json.dumps(draft, ensure_ascii=False, indent=1), encoding="utf-8")
+        options = list(draft["phase"]["criteria"])
+        print(f"{args.out}  ({len(options)} options: {', '.join(options)})", file=sys.stderr)
+        print(f"  a draft, not a question set yet — check it before using it:\n"
+              f"  whatitdid questions check {args.out} {args.session}", file=sys.stderr)
+        return 0
+
+    rows, _agent, _model = read_turns(args.session)
+    result = check(str(args.set), rows, labeler=make_labeler(args), sample=args.sample,
+                   workers=args.concurrency)
+    print(format_check(result, args.lang))
+    if args.json:
+        args.json.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+    return 0 if result["usable"] else 1
 
 
 def write_summary(rep, args) -> str:
@@ -162,6 +206,7 @@ def main(argv: list[str] | None = None) -> int:
     watch.add_argument("--parallel-tasks", type=int, default=2)
     watch.add_argument("--once", action="store_true")
     add_labeler_args(watch)
+    watch.set_defaults(questions="sre.v1")
     add_lang(watch)
     watch.set_defaults(func=lambda a: __import__("whatitdid.watch", fromlist=["run"]).run(a))
 
@@ -175,6 +220,26 @@ def main(argv: list[str] | None = None) -> int:
     cmp_.add_argument("--seed", type=int, default=0)
     add_lang(cmp_)
     cmp_.set_defaults(func=cmd_compare)
+
+    q = sub.add_parser("questions", help="draft a question set for your domain, or check one")
+    qsub = q.add_subparsers(dest="action", required=True)
+
+    qp = qsub.add_parser("propose", help="draft a domain question from a real run")
+    qp.add_argument("session", type=pathlib.Path)
+    qp.add_argument("--out", type=pathlib.Path, required=True)
+    qp.add_argument("--id", default="custom.v1")
+    qp.add_argument("--chat-model", default="deepseek-flash")
+    add_lang(qp)
+    qp.set_defaults(func=cmd_questions)
+
+    qc = qsub.add_parser("check", help="try a set on real steps and say whether it holds up")
+    qc.add_argument("set", type=pathlib.Path)
+    qc.add_argument("session", type=pathlib.Path)
+    qc.add_argument("--sample", type=int, default=40)
+    qc.add_argument("--json", type=pathlib.Path)
+    add_labeler_args(qc)
+    add_lang(qc)
+    qc.set_defaults(func=cmd_questions)
 
     serve_ = sub.add_parser("serve", help="open the web app in a browser")
     serve_.add_argument("--host", default="127.0.0.1")

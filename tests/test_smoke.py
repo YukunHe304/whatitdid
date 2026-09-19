@@ -388,3 +388,105 @@ def test_summary_file_round_trips_through_the_cli_loader(tmp_path):
         loaded = load_summary(target)
         assert sorted(loaded) == ["p0", "p1", "p2", "p3"]
         assert loaded["p0"]["questions"] == "sre.v1"
+
+
+# --- question-set fit --------------------------------------------------------
+
+def _labels_for(phase_probs: list[dict]) -> tuple[dict, dict, list[dict]]:
+    """Shape a fake profile from a list of per-step phase distributions."""
+    keys = sorted({k for p in phase_probs for k in p})
+    mix = {k: sum(p.get(k, 0) for p in phase_probs) / len(phase_probs) for k in keys}
+    stats = {"labeler_confidence": st_median([max(p.values()) for p in phase_probs])}
+    return mix, stats, [{"phase": p} for p in phase_probs]
+
+
+def st_median(values):
+    import statistics
+    return statistics.median(values)
+
+
+def test_fit_stays_quiet_on_a_matching_set():
+    from whatitdid.fit import assess, explain
+
+    steps = [{"survey": 0.8, "inspect": 0.15, "other": 0.05} for _ in range(20)]
+    fit = assess(*_labels_for(steps))
+    assert fit["fits"] is True
+    assert explain(fit, "sre.v1") is None
+
+
+def test_fit_warns_when_everything_lands_in_the_catch_all():
+    """The measured failure mode: the labeler stays confident and bins everything.
+
+    Real numbers from one operations trajectory labelled with a set about cooking —
+    confidence 0.78, which is fine, and 74% in 'other', which is not.
+    """
+    from whatitdid.fit import assess, explain
+
+    steps = [{"shop": 0.2, "other": 0.78, "prep": 0.02} for _ in range(20)]
+    fit = assess(*_labels_for(steps))
+    assert fit["fits"] is False
+    assert "many_unclassified" in {kind for kind, _ in fit["reasons"]}
+    for lang in ("en", "zh"):
+        message = explain(fit, "kitchen.v1", lang)
+        assert message and "kitchen.v1" in message
+
+
+def test_fit_warns_when_the_labeler_cannot_decide():
+    from whatitdid.fit import assess
+
+    steps = [{"a": 0.34, "b": 0.33, "c": 0.33} for _ in range(20)]
+    fit = assess(*_labels_for(steps))
+    kinds = {kind for kind, _ in fit["reasons"]}
+    assert {"low_confidence", "many_undecided"} & kinds
+
+
+# --- question-set detection --------------------------------------------------
+
+def test_detection_reads_the_commands_and_shows_its_evidence():
+    from whatitdid.detect import describe, sniff
+
+    rows, _agent, _model = read_turns(FIX / FIXTURES["opencode"])
+    result = sniff(rows)
+    assert result["pick"] == "sre.v1"
+    assert result["scores"]["code.v1"] == 0
+    assert "kubectl" in describe(result)
+
+
+def test_detection_picks_the_coding_set_for_coding_work():
+    from whatitdid.detect import sniff
+
+    rows = [{"turn": i, "actions": [{"tool": "bash", "args": {"command": cmd}}]}
+            for i, cmd in enumerate(
+                ["pytest -q tests/", "git diff HEAD~1", "ruff check src/",
+                 "pytest tests/test_x.py -k broken", "mypy src/"], 1)]
+    assert sniff(rows)["pick"] == "code.v1"
+
+
+def test_detection_abstains_rather_than_guessing_from_nothing():
+    from whatitdid.detect import sniff
+
+    rows = [{"turn": 1, "actions": [{"tool": "bash", "args": {"command": "echo hello"}}]}]
+    assert sniff(rows)["pick"] is None
+
+
+# --- question-set drafting and checking --------------------------------------
+
+def test_sampling_spreads_across_the_run_rather_than_taking_the_opening():
+    """A prefix is all investigation, which made every set look as though it had no
+    repair and no verification — a property of the window, not of the set."""
+    from whatitdid.questions import spread
+
+    turns = [{"turn": i} for i in range(1, 101)]
+    picked = [t["turn"] for t in spread(turns, 10)]
+    assert len(picked) == 10
+    assert picked == sorted(picked), "order must survive"
+    assert picked[0] == 1 and picked[-1] > 80, "both ends of the run must be represented"
+    assert spread(turns[:5], 10) == turns[:5], "a short run is taken whole"
+
+
+def test_unused_options_are_not_judged_on_too_short_a_sample():
+    from whatitdid.questions import _enough_for_dead
+
+    assert not _enough_for_dead(12, 8), "12 steps cannot show all 8 options"
+    assert _enough_for_dead(36, 8)
+    assert not _enough_for_dead(25, 20), "20 options need more than 25 steps"

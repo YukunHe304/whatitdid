@@ -124,6 +124,53 @@ Six per step, answered in one call. One names the kind of move and changes with 
 domain; the other five are identical across domains, so a coding agent and an ops agent
 stay comparable on those.
 
+**You are not asked to pick the domain one blind.** With `--questions` omitted, the
+commands are read and the guess is printed with the evidence behind it:
+
+```
+$ whatitdid run session.jsonl
+  Looks like sre.v1 (kubectl x20, get pods x5, namespace x1)
+```
+
+When the commands do not separate the candidates it says so and falls back rather than
+guessing. Afterwards the report says whether the set actually fitted — a set from the
+wrong world shows up as steps piling into the catch-all category. Measured on one
+operations run labelled three ways:
+
+| set | confidence | in "other" | verdict |
+| --- | ---: | ---: | --- |
+| `sre.v1` | 0.83 | 7% | quiet |
+| `code.v1` | 0.80 | 13% | quiet |
+| a set about cooking | 0.78 | **74%** | **warns** |
+
+That catches a set from the wrong world, not one that is merely a poor fit for yours —
+`code.v1` shares four options with `sre.v1`, so it passes. Note the confidence barely
+moves: the labeler stays sure of itself while binning everything.
+
+### A set for your own domain
+
+```bash
+whatitdid questions propose session.jsonl --out mine.json   # draft one from real steps
+whatitdid questions check mine.json session.jsonl           # then earn the right to use it
+```
+
+`check` labels a spread of real steps and reports four things, each against what the
+shipped set does on data it fits:
+
+```
+mine.v1 on 36 real steps
+  ok   answerable             top choice median 0.93
+  FAIL every option used      largest option 28%
+  ok   follows the action     3% move with narration
+  ok   questions are distinct 0 correlated pairs
+  not usable yet:
+    - never used: read_guide
+```
+
+It exits non-zero when a set is not usable. The draft above is a real one: a model asked
+to name the moves in a run produced a category nothing ever landed in, which is exactly
+what this is for.
+
 | | |
 | --- | --- |
 | **what kind of move** | domain-specific — `sre.v1`: survey / localize / inspect / probe / repair / verify / report. `code.v1`: survey / localize / read / reproduce / edit / test / revert / report |
