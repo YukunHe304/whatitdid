@@ -14,7 +14,9 @@ that is not in this repository; the output it produces is committed.
 from __future__ import annotations
 
 import json
+import os
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
@@ -23,7 +25,10 @@ from whatitdid.core import Report  # noqa: E402
 from whatitdid.findings import findings  # noqa: E402
 from whatitdid.labeler import load_question_set  # noqa: E402
 
-RESEARCH = pathlib.Path("/Users/yukun/Documents/ChatGPT/research/output/sregym-traj-profile-20260919")
+# Override with --research; the default is only where this happened to live.
+RESEARCH = pathlib.Path(
+    os.environ.get("WHATITDID_RESEARCH_DIR", "~/Documents/ChatGPT/research/output/sregym-traj-profile-20260919")
+).expanduser()
 OUT = pathlib.Path(__file__).resolve().parent.parent / "src" / "whatitdid" / "data" / "demo"
 
 # The stats keys the original run wrote, before ids were stabilised.
@@ -36,6 +41,32 @@ LEGACY_FINDING = {
     "在重看": "waste", "整条轨迹几乎没有": "blind_spot", "处改动之后": "unverified_change",
     "不像调查动作": "plumbing", "不是在验证任何具体怀疑": "drift",
 }
+
+
+# The trajectories were recorded against a real research cluster, and kubectl prints node
+# names and addresses into almost every observation. None of it is secret — no credentials
+# appear anywhere in this corpus — but it identifies someone else's machines, and this file
+# ships to everyone who installs the package. Anonymise it.
+#
+# Only the displayed text changes. The labels were produced from the original observations
+# and are not recomputed, which is fine: no question turns on a hostname.
+SCRUB = [
+    (re.compile(r'\b(node\d+)\.exp-\d+\.[\w-]+\.wisc\.cloudlab\.us\b'), r'\1.example-cluster.invalid'),
+    (re.compile(r'\b128\.105\.\d{1,3}\.(\d{1,3})\b'), r'10.0.0.\1'),
+]
+
+
+def scrub(value):
+    """Walk any JSON structure and rewrite identifying strings in place."""
+    if isinstance(value, str):
+        for pattern, replacement in SCRUB:
+            value = pattern.sub(replacement, value)
+        return value
+    if isinstance(value, dict):
+        return {k: scrub(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [scrub(v) for v in value]
+    return value
 
 
 def read_jsonl(path: pathlib.Path) -> list[dict]:
@@ -130,11 +161,11 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
 
     print("agents (cross-agent view):")
-    agents = build_agents()
+    agents = scrub(build_agents())
     (OUT / "agents.json").write_text(json.dumps(agents, ensure_ascii=False), encoding="utf-8")
 
     print("compare (two rounds of the same config):")
-    sides = build_compare()
+    sides = scrub(build_compare())
     (OUT / "compare.json").write_text(json.dumps(sides, ensure_ascii=False), encoding="utf-8")
 
     for name in ("agents.json", "compare.json"):

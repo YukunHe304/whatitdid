@@ -66,6 +66,14 @@ License:   MIT
      including `copilot_run_flat/copilot-cli.jsonl`, whose first line is
      deliberately not JSON — it is a malformed-input test, not corruption.
 
+     These transcripts record kubectl output from the research cluster the runs were
+     performed on, so they contain that cluster's node names and addresses. They are
+     reproduced unmodified because byte-exactness is the whole point of an adapter
+     fixture, and because they are already published in SREGym upstream. They carry no
+     credentials. The demo data under src/whatitdid/data/demo/, which this project
+     generated and which ships in the wheel, is anonymised instead — see the SCRUB table
+     in scripts/build_demo.py.
+
 Upstream's MIT text is reproduced verbatim below. Two artifacts of that file are
 preserved rather than corrected, because clause 2 of MIT obliges retention of the
 notice as given: it carries no `Copyright (c) <year> <holder>` line, and its
