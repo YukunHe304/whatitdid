@@ -1,0 +1,25 @@
+{
+ "_meta": {
+  "id": "code.v1",
+  "shares": "_shared",
+  "phase_question": "phase",
+  "roles": {"verify": ["test"], "change": ["edit", "revert"]},
+  "domain": "software engineering",
+  "note": "For coding agents (SWE-Bench, Terminal-Bench and similar). Same five portable questions as sre.v1, so the two are comparable on everything except this phase question."
+ },
+ "phase": {
+  "type": "choice",
+  "instructions": "What is this step of the work doing? Judge the action that was taken and what it returned. Pick the single best description.",
+  "criteria": {
+   "survey": "Looking broadly at the repository without a specific target yet, such as listing files or searching widely.",
+   "localize": "Narrowing from the whole repository to the specific file, function or line at issue.",
+   "read": "Reading one specific piece of source, configuration or documentation in detail.",
+   "reproduce": "Running something in order to make the reported failure happen.",
+   "edit": "Changing source, configuration or tests.",
+   "test": "Running tests or checks to see whether the code now behaves as intended.",
+   "revert": "Undoing or rolling back an earlier change.",
+   "report": "Writing up or submitting a conclusion rather than working on the code.",
+   "other": "None of the above."
+  }
+ }
+}

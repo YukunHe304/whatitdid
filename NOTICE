@@ -1,0 +1,107 @@
+agentvitals
+Copyright 2026 Yukun He
+
+This product includes software developed by third parties, as set out below.
+
+================================================================================
+1. Harbor — Apache License 2.0
+================================================================================
+
+Upstream:  https://github.com/harbor-framework/harbor
+Commit:    fd1a8ea6d411b336c9f377aafae1818fe7b18c8d (2026-06-26)
+License:   Apache License, Version 2.0
+           (upstream ships a LICENSE file and no NOTICE file)
+
+Two parts of this repository derive from Harbor. A copy of the Apache License,
+Version 2.0 is in the LICENSE file at the root of this repository.
+
+  a) src/agentvitals/formats/atif/
+     The ATIF v1.7 Pydantic models, vendored VERBATIM from Harbor's
+     src/harbor/models/trajectories/.
+
+     CHANGES MADE (Apache-2.0 section 4(b)):
+       - Import paths rewritten from `harbor.models.trajectories` to
+         `agentvitals.formats.atif`. No other change: all model logic, field
+         definitions, validators and `to_json_dict()` are byte-for-byte upstream.
+
+  b) src/agentvitals/formats/adapters/
+     Clean ports of Harbor's installed-agent converters from
+     src/harbor/agents/installed/ (same commit), rewritten as standalone pure
+     functions with no dependency on `harbor`.
+
+     CHANGES MADE (Apache-2.0 section 4(b)):
+       - claudecode.py   port of claude_code.py
+       - codex.py        port of codex.py
+       - opencode.py     port of opencode.py
+       - copilot.py      port of copilot_cli.py, with two deliberate deviations:
+                         emits ATIF-v1.7 rather than Harbor's hardcoded v1.6, and
+                         maps a turn's reasoning to the first-class
+                         `reasoning_content` field rather than leaving it in `extra`.
+       - gemini.py       port of gemini_cli.py
+       - stratus.py      NOT derived from Harbor; written from scratch against
+                         SREGym's own agent (see section 2).
+       - baseline.py     NOT derived from Harbor; written from scratch.
+
+     Per-file detail is kept in src/agentvitals/formats/atif/UPSTREAM.md.
+
+================================================================================
+2. SREGym — MIT License
+================================================================================
+
+Upstream:  https://github.com/SREGym/SREGym
+License:   MIT
+
+  a) src/agentvitals/formats/
+     The packaging of the converter above, and the `stratus` and `baseline`
+     adapters, derive from SREGym's atif_converter.
+
+     CHANGES MADE:
+       - Module path renamed from `atif_converter` to `agentvitals.formats`.
+       - Adapters take an injected labeler rather than constructing one.
+
+  b) tests/fixtures/
+     Real agent session files, vendored unmodified from SREGym's
+     tests/traces/fixtures/. Every file is one agent's own output for the problem
+     `service_port_conflict_hotel_reservation`. They are reproduced byte-for-byte,
+     including `copilot_run_flat/copilot-cli.jsonl`, whose first line is
+     deliberately not JSON — it is a malformed-input test, not corruption.
+
+Upstream's MIT text is reproduced verbatim below. Two artifacts of that file are
+preserved rather than corrected, because clause 2 of MIT obliges retention of the
+notice as given: it carries no `Copyright (c) <year> <holder>` line, and its
+disclaimer paragraph reads "IN AON ACTION OF CONTRACT" where the canonical MIT
+text reads "IN AN ACTION OF CONTRACT".
+
+--------------------------------------------------------------------------------
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AON ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+--------------------------------------------------------------------------------
+
+================================================================================
+3. Content inside the vendored fixtures
+================================================================================
+
+The fixtures are transcripts of agents working on a live Kubernetes deployment of
+the OpenTelemetry Demo. Command output captured in those transcripts therefore
+quotes fragments of that project's configuration, which carries its own
+Apache-2.0 header. Those fragments appear as recorded observation text.
+
+  OpenTelemetry Demo — Copyright The OpenTelemetry Authors, Apache-2.0
+  https://github.com/open-telemetry/opentelemetry-demo

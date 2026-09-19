@@ -1,0 +1,33 @@
+{
+ "_meta": {
+  "id": "_shared",
+  "note": "The five portable questions. No domain vocabulary, so a profile of an SRE agent and a profile of a coding agent stay comparable on these five even though their phase vocabularies differ. Frozen: changing any wording here invalidates comparison with earlier runs."
+ },
+ "hypothesis_driven": {
+  "type": "noul",
+  "instructions": "Is this step testing one specific suspicion, as opposed to gathering material in general? A step that would look the same whatever the fault turned out to be is not testing a suspicion."
+ },
+ "new_information": {
+  "type": "noul",
+  "instructions": "Did this step's result reveal something that the earlier steps listed under prior_actions had not already established? If the result only confirms what was already visible, answer no."
+ },
+ "revisits": {
+  "type": "noul",
+  "instructions": "Does this step re-examine something that an earlier step under prior_actions already examined?"
+ },
+ "changes_system": {
+  "type": "noul",
+  "instructions": "Does this step modify the system, as opposed to only reading from it?"
+ },
+ "targeting": {
+  "type": "score",
+  "instructions": "How narrowly targeted is this step?",
+  "criteria": [
+   "Applies to the whole system with no particular target.",
+   "Aimed at one broad area of the system.",
+   "Aimed at a handful of specific objects.",
+   "Aimed at one specific object.",
+   "Aimed at one specific property of one specific object."
+  ]
+ }
+}

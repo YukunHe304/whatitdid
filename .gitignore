@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Frontend
+node_modules/
+web/dist/
+.vite/
+
+# Secrets — never commit a key. agentvitals reads them from ~/.config/agentvitals/
+# or the environment; nothing belongs in the tree.
+.env
+*.env
+!*.env.example
+secrets/
+
+# Local output
+reports/
+*_report.html
+summary.jsonl
+.agentvitals/
+.DS_Store

@@ -1,0 +1,24 @@
+{
+ "_meta": {
+  "id": "sre.v1",
+  "shares": "_shared",
+  "phase_question": "phase",
+  "roles": {"verify": ["verify"], "change": ["repair"]},
+  "domain": "operations diagnosis",
+  "note": "Frozen. The phase categories follow the Localize/Reproduce/Fix/Verify/Other split used in arXiv 2609.20804, reworked for diagnosing a live system. Changing any wording invalidates comparison with earlier runs; make a new id instead."
+ },
+ "phase": {
+  "type": "choice",
+  "instructions": "What is this step of the investigation doing? Judge the action that was taken and what it returned. Pick the single best description.",
+  "criteria": {
+   "survey": "Looking broadly at the whole system without a specific suspect yet.",
+   "localize": "Narrowing from many components to a smaller set of suspects.",
+   "inspect": "Reading the configuration or state of one specific suspect in detail.",
+   "probe": "Actively exercising the system to see how it behaves, rather than reading state.",
+   "repair": "Changing the system.",
+   "verify": "Checking whether a change had the intended effect.",
+   "report": "Writing up or submitting a conclusion rather than investigating.",
+   "other": "None of the above."
+  }
+ }
+}
