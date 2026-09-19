@@ -285,3 +285,77 @@ def test_a_single_run_cannot_estimate_repeat_noise():
 def test_paired_bootstrap_is_reproducible():
     a, b = [0.1] * 10, [0.2] * 10
     assert _paired_bootstrap(a, b, 500, seed=1) == _paired_bootstrap(a, b, 500, seed=1)
+
+
+# --- watch discovery ---------------------------------------------------------
+
+def _make_run(root: pathlib.Path, problem: str, *, nested: bool = False,
+              suite_csv: bool = False) -> pathlib.Path:
+    """A directory shaped like a finished SREGym task."""
+    run_dir = root / problem / "run_1" if nested else root / problem
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / f"{problem}_results.csv").write_text("problem_id\n" + problem, encoding="utf-8")
+    session = run_dir / "session.jsonl"
+    session.write_bytes((FIX / FIXTURES["codex"]).read_bytes())
+    if suite_csv:
+        (root / "suite_ALL_results.csv").write_text("problem_id\n", encoding="utf-8")
+    # noise that must not be mistaken for the session file
+    (run_dir / "steps").mkdir(exist_ok=True)
+    (run_dir / "steps" / "step_01.json").write_text("{}", encoding="utf-8")
+    return run_dir
+
+
+def test_watch_finds_finished_tasks_and_ignores_the_suite_rollup(tmp_path):
+    from agentvitals.watch import finished_runs, session_in
+
+    _make_run(tmp_path, "alpha", suite_csv=True)
+    _make_run(tmp_path, "beta", nested=True)
+
+    found = dict(finished_runs(tmp_path))
+    assert sorted(found) == ["alpha", "beta"], "the *_ALL_results.csv rollup is not a task"
+    # A nested run_N directory reports the problem name, not "run_1".
+    assert found["beta"].name == "run_1"
+
+    for problem, run_dir in found.items():
+        session = session_in(run_dir)
+        assert session is not None and session.name == "session.jsonl", problem
+
+
+def test_watch_prefers_the_deepest_results_csv(tmp_path):
+    """A task can have a results CSV at both levels; the session lives at the deeper one."""
+    from agentvitals.watch import finished_runs
+
+    problem = "gamma"
+    outer = tmp_path / problem
+    inner = outer / "run_1"
+    inner.mkdir(parents=True)
+    (outer / f"{problem}_results.csv").write_text("x\n", encoding="utf-8")
+    (inner / f"{problem}_results.csv").write_text("x\n", encoding="utf-8")
+
+    found = dict(finished_runs(tmp_path))
+    assert found[problem] == inner
+
+
+def test_watch_skips_a_directory_with_no_recognisable_session(tmp_path):
+    from agentvitals.watch import session_in
+
+    run_dir = tmp_path / "delta"
+    run_dir.mkdir()
+    (run_dir / "notes.json").write_text('{"unrelated": true}', encoding="utf-8")
+    assert session_in(run_dir) is None
+
+
+def test_summary_file_round_trips_through_the_cli_loader(tmp_path):
+    from agentvitals.cli import load_summary
+
+    rep = profile(FIX / FIXTURES["codex"], labeler=FakeLabeler(), workers=4)
+    path = tmp_path / "summary.jsonl"
+    with path.open("w", encoding="utf-8") as fh:
+        for i in range(4):
+            fh.write(json.dumps(to_summary_row(rep, problem=f"p{i}", report=f"p{i}.html")) + "\n")
+        fh.write("\n")  # blank lines are tolerated
+
+    for target in (path, tmp_path):  # a file or the directory holding it
+        loaded = load_summary(target)
+        assert sorted(loaded) == ["p0", "p1", "p2", "p3"]
+        assert loaded["p0"]["questions"] == "sre.v1"
