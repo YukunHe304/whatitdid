@@ -16,7 +16,7 @@ node_modules/
 web/dist/
 .vite/
 
-# Secrets — never commit a key. agentvitals reads them from ~/.config/agentvitals/
+# Secrets — never commit a key. whatitdid reads them from ~/.config/whatitdid/
 # or the environment; nothing belongs in the tree.
 .env
 *.env
@@ -27,5 +27,5 @@ secrets/
 reports/
 *_report.html
 summary.jsonl
-.agentvitals/
+.whatitdid/
 .DS_Store

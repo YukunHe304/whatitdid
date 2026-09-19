@@ -142,7 +142,7 @@ def cmd_demo(args) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="agentvitals", description="See what an agent run actually did, not just its score.")
+        prog="whatitdid", description="See what an agent run actually did, not just its score.")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     run = sub.add_parser("run", help="profile one trajectory")
@@ -163,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     watch.add_argument("--once", action="store_true")
     add_labeler_args(watch)
     add_lang(watch)
-    watch.set_defaults(func=lambda a: __import__("agentvitals.watch", fromlist=["run"]).run(a))
+    watch.set_defaults(func=lambda a: __import__("whatitdid.watch", fromlist=["run"]).run(a))
 
     cmp_ = sub.add_parser("compare", help="two rounds: what did the change actually change")
     cmp_.add_argument("before", type=pathlib.Path)

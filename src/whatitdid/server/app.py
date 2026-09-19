@@ -9,7 +9,7 @@ Two rules this file exists to enforce:
     written to the user's config directory with owner-only permissions and read from
     there or from the environment.
   - Demo mode cannot label. It serves pre-computed data and refuses profiling outright,
-    so `agentvitals demo` cannot quietly start spending someone's credits.
+    so `whatitdid demo` cannot quietly start spending someone's credits.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ from ..noise import load_reference
 PACKAGE = pathlib.Path(__file__).resolve().parent.parent
 STATIC = PACKAGE / "static"
 DEMO = PACKAGE / "data" / "demo"
-CONFIG_DIR = pathlib.Path(os.path.expanduser("~/.config/agentvitals"))
+CONFIG_DIR = pathlib.Path(os.path.expanduser("~/.config/whatitdid"))
 MAX_UPLOAD = 64 * 1024 * 1024
 
 
@@ -121,10 +121,10 @@ def read_summary_dir(path: pathlib.Path) -> dict[str, dict]:
 
 def build_app(*, lang: str = "en", reports_dir: pathlib.Path | None = None,
               demo_only: bool = False) -> FastAPI:
-    app = FastAPI(title="agentvitals", docs_url=None, redoc_url=None)
+    app = FastAPI(title="whatitdid", docs_url=None, redoc_url=None)
     jobs = Jobs()
     reports: dict[str, dict] = {}
-    scratch = pathlib.Path(tempfile.mkdtemp(prefix="agentvitals-"))
+    scratch = pathlib.Path(tempfile.mkdtemp(prefix="whatitdid-"))
 
     if reports_dir and reports_dir.exists():
         for path in sorted(reports_dir.glob("*.json")):
@@ -138,7 +138,7 @@ def build_app(*, lang: str = "en", reports_dir: pathlib.Path | None = None,
             "has_key": key_present(),
             "lang": lang,
             "langs": list(i18n.LANGS),
-            "version": __import__("agentvitals").__version__,
+            "version": __import__("whatitdid").__version__,
             "question_sets": [
                 {"id": q, **{k: v for k, v in
                              (("phases", load_question_set(q).phases),
@@ -212,7 +212,7 @@ def build_app(*, lang: str = "en", reports_dir: pathlib.Path | None = None,
                             concurrency: int = 8, check_narration: bool = True):
         if demo_only:
             raise HTTPException(
-                403, "this is the bundled demo; run `agentvitals serve` to profile your own runs")
+                403, "this is the bundled demo; run `whatitdid serve` to profile your own runs")
         if file is None and not path:
             raise HTTPException(400, "send a file or a path")
 
@@ -292,9 +292,9 @@ def serve(*, host: str = "127.0.0.1", port: int = 8321, lang: str = "en",
     app = build_app(lang=lang, reports_dir=reports_dir, demo_only=demo_only)
     url = f"http://{host}:{port}/"
     if demo_only:
-        print(f"agentvitals demo — bundled sample data, no API key needed\n{url}")
+        print(f"whatitdid demo — bundled sample data, no API key needed\n{url}")
     else:
-        print(f"agentvitals — {url}")
+        print(f"whatitdid — {url}")
         if not key_present():
             print("  no TYPESAFE_API_KEY yet; the app will ask for one before it labels anything")
     if open_browser:

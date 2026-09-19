@@ -11,12 +11,12 @@ import pathlib
 
 import pytest
 
-from agentvitals import compare, i18n, noise, profile, read_turns
-from agentvitals.compare import _paired_bootstrap
-from agentvitals.findings import findings
-from agentvitals.formats import SUPPORTED_AGENTS, detect_agent
-from agentvitals.labeler import load_question_set
-from agentvitals.serialize import command_of, to_summary_row
+from whatitdid import compare, i18n, noise, profile, read_turns
+from whatitdid.compare import _paired_bootstrap
+from whatitdid.findings import findings
+from whatitdid.formats import SUPPORTED_AGENTS, detect_agent
+from whatitdid.labeler import load_question_set
+from whatitdid.serialize import command_of, to_summary_row
 
 FIX = pathlib.Path(__file__).parent / "fixtures"
 
@@ -306,7 +306,7 @@ def _make_run(root: pathlib.Path, problem: str, *, nested: bool = False,
 
 
 def test_watch_finds_finished_tasks_and_ignores_the_suite_rollup(tmp_path):
-    from agentvitals.watch import finished_runs, session_in
+    from whatitdid.watch import finished_runs, session_in
 
     _make_run(tmp_path, "alpha", suite_csv=True)
     _make_run(tmp_path, "beta", nested=True)
@@ -323,7 +323,7 @@ def test_watch_finds_finished_tasks_and_ignores_the_suite_rollup(tmp_path):
 
 def test_watch_prefers_the_deepest_results_csv(tmp_path):
     """A task can have a results CSV at both levels; the session lives at the deeper one."""
-    from agentvitals.watch import finished_runs
+    from whatitdid.watch import finished_runs
 
     problem = "gamma"
     outer = tmp_path / problem
@@ -337,7 +337,7 @@ def test_watch_prefers_the_deepest_results_csv(tmp_path):
 
 
 def test_watch_skips_a_directory_with_no_recognisable_session(tmp_path):
-    from agentvitals.watch import session_in
+    from whatitdid.watch import session_in
 
     run_dir = tmp_path / "delta"
     run_dir.mkdir()
@@ -346,7 +346,7 @@ def test_watch_skips_a_directory_with_no_recognisable_session(tmp_path):
 
 
 def test_summary_file_round_trips_through_the_cli_loader(tmp_path):
-    from agentvitals.cli import load_summary
+    from whatitdid.cli import load_summary
 
     rep = profile(FIX / FIXTURES["codex"], labeler=FakeLabeler(), workers=4)
     path = tmp_path / "summary.jsonl"

@@ -1,28 +1,30 @@
-# agentvitals
+# whatitdid
 
 **读任何一个 CLI agent 的会话文件，告诉你这次运行实际做了什么——逐步，带误差。**
 
-[English](README.md)
+[**在线演示**](https://yukunhe304.github.io/whatitdid/) · [English](README.md) ·
+[![ci](https://github.com/YukunHe304/whatitdid/actions/workflows/ci.yml/badge.svg)](https://github.com/YukunHe304/whatitdid/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 ```bash
-uvx agentvitals demo        # 用随包的真实数据打开浏览器，不需要 API key
+uvx whatitdid demo        # 用随包的真实数据打开浏览器，不需要 API key
 ```
 
-![七个 CLI agent 跑同一个故障，每次运行画成一条按步打过标签的轨迹](docs/media/agents.png)
+![七个 CLI agent 跑同一个故障，每次运行画成一条按步打过标签的轨迹](media/agents.png)
 
 ---
 
 一轮 benchmark 跑完，你手上只有两样东西：一个分数，和几万行日志。中间是空的。
 你知道 Claude Code 66.7%、Codex 61.9%，但完全不知道它们各自**干了什么**。
 
-agentvitals 给每一步打标签——这一步是哪类动作、有没有带来新信息、有没有改动系统之后去验证——
+whatitdid 给每一步打标签——这一步是哪类动作、有没有带来新信息、有没有改动系统之后去验证——
 然后把两轮运行放在一起比，并且扣掉重跑本来就会有的波动。
 
 ```bash
-agentvitals run session.jsonl --out report.html   # 体检一条轨迹
-agentvitals watch ./runs --out reports/           # benchmark 每跑完一题就体检一题
-agentvitals compare ./before ./after              # 这次改动到底改了什么
-agentvitals serve                                 # 网页版
+whatitdid run session.jsonl --out report.html   # 体检一条轨迹
+whatitdid watch ./runs --out reports/           # benchmark 每跑完一题就体检一题
+whatitdid compare ./before ./after              # 这次改动到底改了什么
+whatitdid serve                                 # 网页版
 ```
 
 ## 分数给不了的东西
@@ -39,11 +41,17 @@ agentvitals serve                                 # 网页版
 | opencode | 0.08 | 0.20 | 0.18 | 0.54 | 67% |
 | stratus | **0.00** | 0.24 | 0.18 | 0.63 | 74% |
 
-claudecode、copilot、stratus 的「主动试」是 **0.00**：整条轨迹里，
+claudecode、copilot、stratus 的「主动试」是 **0.00**：在这几次运行里，
 **它们从来没有主动去试一下系统的反应**，只读状态然后下判断。
 如果你的环境里「改完没验证」是要付代价的，这比五个点的通过率重要得多。
 
 「自述兑现」是指它刚说完下一步要做什么，之后三步里真的做了的比例。七家从 53% 到 85%。
+
+> **这张表是演示，不是对这些产品的判决。** 它是每家一次运行、一道题——足以说明这把尺子能用、
+> 也足以说明这几家确实不一样，但远不足以给它们排名。表里每个数字都来自本仓库随附的数据，
+> 你可以自己复现（`uvx whatitdid demo`），也可以不同意。
+> 要对其中任何一家下真结论，得多题、多次重跑，再把差异拿去和下一节的重跑噪声底比——
+> 那正是下一节存在的理由。
 
 ## 为什么重点是 compare
 
@@ -69,23 +77,28 @@ claudecode、copilot、stratus 的「主动试」是 **0.00**：整条轨迹里�
 它完全没有回答「**同一个配置再跑一遍**会不会也这样」。
 agent 不是确定性的，而后面这个波动往往更大。
 
-所以 agentvitals 会测量重跑噪声，两个都报给你：
+所以 whatitdid 会要一条重跑噪声底，没有它就拒绝下判定：
 
 ```
 指标            差值              95% 区间       变大   重跑噪声   判定
-写结论          -0.084  (-0.138, -0.038)      5/21    ±0.009   ✓ 超出噪声
-自述兑现率      -0.061  (-0.093, -0.032)      2/21    ±0.019   ✓ 超出噪声
-主动试系统      +0.056  (+0.020, +0.091)     15/21    ±0.030   · 噪声内
+写结论          -0.084  (-0.138, -0.038)      5/21        —     ? 没有重跑基准
+自述兑现率      -0.061  (-0.093, -0.032)      2/21        —     ? 没有重跑基准
+主动试系统      +0.056  (+0.020, +0.091)     15/21        —     ? 没有重跑基准
+大范围扫        +0.023  (-0.009, +0.053)     14/21        —       区间跨零
 ```
 
-比重跑本身的波动还小的变化不算发现，区间再窄也不算。
-你自己有重复运行的话就用你自己的：
+这就是这组对照的真实输出——因为那两轮没有第三次运行可以拿来量噪声。
+**工具会直说，而不是把自助法的结论冒充成判定。**
+
+给它同一配置的重复运行，最后两列就会填上：每个变化会跟「什么都没改时这个指标能漂多远」比，
+比它小的一律标成「噪声内」，区间再窄也一样。
 
 ```bash
-agentvitals compare ./before ./after --repeat ./before-again
+whatitdid compare ./before ./after --repeat ./before-again
 ```
 
-没有基准时，判定写的是「没有基准」，不是「没问题」。
+不随包发默认值。别人的 agent 在别人的题目上测出来的底不是你的底，
+而**错的底比没有底更糟**——它会把噪声装扮成发现。
 
 ## 支持的格式
 
@@ -126,7 +139,7 @@ agentvitals compare ./before ./after --repeat ./before-again
 
 前两行解释了为什么这件事现在做得起，第三行解释了为什么跨 agent 比较时它才靠得住：
 不同 agent 的自述量差 4.5 倍，而会读自述的标注器，会把话多的那个读成更有章法。
-**agentvitals 在产出可比标签的那一遍里，从不把 agent 自己的话给标注器看**，
+**whatitdid 在产出可比标签的那一遍里，从不把 agent 自己的话给标注器看**，
 自述只用于单独的兑现率核对。
 
 没有 Jev key 的话，`--labeler chat` 可以用任何 OpenAI 兼容的接口。
@@ -134,20 +147,20 @@ agentvitals compare ./before ./after --repeat ./before-again
 
 ## key 放哪
 
-从 `TYPESAFE_API_KEY` 或 `~/.config/agentvitals/typesafe.env`（600）读。
+从 `TYPESAFE_API_KEY` 或 `~/.config/whatitdid/typesafe.env`（600）读。
 网页版可以帮你写进去。不会提交、不会打日志、除了你自己选的标注接口之外不发去任何地方。
 轨迹始终留在你自己的机器上。
 
 ## 安装
 
 ```bash
-pip install agentvitals
+pip install whatitdid
 ```
 
 需要 Python 3.11+。从源码装：
 
 ```bash
-git clone https://github.com/YukunHe304/agentvitals && cd agentvitals
+git clone https://github.com/YukunHe304/whatitdid && cd whatitdid
 pip install -e ".[dev]"
 npm --prefix web install && npm --prefix web run build   # 只有改了网页版才需要
 pytest
@@ -156,7 +169,7 @@ pytest
 ## Python 接口
 
 ```python
-from agentvitals import profile, compare
+from whatitdid import profile, compare
 
 rep = profile("session.jsonl")
 rep.to_html("report.html")

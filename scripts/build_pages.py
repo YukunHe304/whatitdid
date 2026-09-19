@@ -20,13 +20,13 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-import agentvitals  # noqa: E402
-from agentvitals import compare as run_compare  # noqa: E402
-from agentvitals import i18n  # noqa: E402
-from agentvitals.labeler import load_question_set  # noqa: E402
+import whatitdid  # noqa: E402
+from whatitdid import compare as run_compare  # noqa: E402
+from whatitdid import i18n  # noqa: E402
+from whatitdid.labeler import load_question_set  # noqa: E402
 
-STATIC = ROOT / "src" / "agentvitals" / "static"
-DEMO = ROOT / "src" / "agentvitals" / "data" / "demo"
+STATIC = ROOT / "src" / "whatitdid" / "static"
+DEMO = ROOT / "src" / "whatitdid" / "data" / "demo"
 DOCS = ROOT / "docs"
 
 
@@ -41,6 +41,8 @@ def main() -> int:
         print("build the web app first: npm --prefix web run build", file=sys.stderr)
         return 1
 
+    # docs/ is rebuilt from scratch every time, so nothing hand-made may live here —
+    # the README's images are in media/ at the repo root for exactly that reason.
     if DOCS.exists():
         shutil.rmtree(DOCS)
     shutil.copytree(STATIC, DOCS)
@@ -53,7 +55,7 @@ def main() -> int:
         "has_key": False,
         "lang": "en",
         "langs": list(i18n.LANGS),
-        "version": agentvitals.__version__,
+        "version": whatitdid.__version__,
         "question_sets": [{"id": q, "phases": load_question_set(q).phases,
                            "roles": load_question_set(q).roles}
                           for q in ("sre.v1", "code.v1")],

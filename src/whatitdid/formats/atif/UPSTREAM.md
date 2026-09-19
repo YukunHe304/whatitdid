@@ -20,7 +20,7 @@ Agent Trajectory Interchange Format (ATIF) reference implementation.
 
 The only modification is the import rewrite:
 
-    harbor.models.trajectories  ->  agentvitals.formats.atif
+    harbor.models.trajectories  ->  whatitdid.formats.atif
 
 All model logic, field definitions, validators, and `to_json_dict()` are kept
 **verbatim**. Do not hand-edit these files; to update, re-vendor from a newer
@@ -40,7 +40,7 @@ upstream commit and re-apply the import rewrite, then bump the commit above.
 - `tool_call.py` — `ToolCall`
 - `trajectory.py` — `Trajectory` (root model, `extra="forbid"`)
 
-## Ported adapters (`agentvitals/formats/adapters/`)
+## Ported adapters (`whatitdid/formats/adapters/`)
 
 The per-tool adapters are **clean ports** of Harbor's installed-agent converters
 (`src/harbor/agents/installed/`, same upstream commit) into standalone pure

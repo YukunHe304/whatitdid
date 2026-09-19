@@ -2,7 +2,7 @@
 
 A clean port of Harbor's ``CopilotCli._convert_jsonl_to_trajectory`` and its
 helpers (upstream commit ``fd1a8ea``, ``src/harbor/agents/installed/copilot_cli.py``;
-see ``agentvitals/formats/atif/UPSTREAM.md``) into standalone, pure functions
+see ``whatitdid/formats/atif/UPSTREAM.md``) into standalone, pure functions
 with no dependency on ``harbor`` or ``BaseInstalledAgent``.
 
 The conversion reads the Copilot CLI **JSONL** output (``copilot-cli.jsonl``,

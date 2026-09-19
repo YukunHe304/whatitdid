@@ -6,14 +6,14 @@ wobbles when you re-run *the same* config on *the same* tasks — and agents are
 deterministic, so that second wobble is real and is often the larger of the two. A change
 smaller than it is not a finding, however tight its confidence interval looks.
 
-Two sources, in this order:
+The number comes from the user's own repeated runs and nowhere else. A floor measured on
+another agent, on other tasks, at another temperature is not theirs, and a wrong floor is
+worse than no floor: it turns noise into a finding while looking authoritative.
 
-1. The user's own repeats. If they ran the same config more than once, that is the right
-   baseline — it is their agent, their tasks, their temperature.
-2. Values shipped with the package, measured on SREGym-Lite. A fallback, and labelled as
-   one: someone else's agent on someone else's tasks is a weak guide to yours.
+`load_reference` will read `data/noise_reference.json` if one is ever placed there, so an
+organisation can ship its own. Nothing is bundled.
 
-Never invented. If neither source has a number, the verdict is "no baseline", not "fine".
+Never invented. With no source, the verdict is "no baseline", not "fine".
 """
 
 from __future__ import annotations
@@ -80,7 +80,7 @@ def estimate(runs: list[dict[str, dict]]) -> dict:
 
 
 def load_reference(question_set: str = "sre.v1") -> dict:
-    """Values shipped with the package. Absent until we have measured them."""
+    """A floor someone placed in the package themselves. Nothing ships by default."""
     try:
         blob = json.loads(REFERENCE_FILE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -93,7 +93,7 @@ def load_reference(question_set: str = "sre.v1") -> dict:
 
 
 def resolve(runs: list[dict[str, dict]] | None = None, question_set: str = "sre.v1") -> dict:
-    """The user's own repeats if they have them, otherwise the shipped values."""
+    """The user's own repeats if they have them, otherwise whatever they installed."""
     if runs and len(runs) >= 2:
         measured = estimate(runs)
         if measured["metrics"]:

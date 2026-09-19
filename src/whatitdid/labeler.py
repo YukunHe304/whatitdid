@@ -26,8 +26,8 @@ RETRY_STATUSES = {429, 500, 502, 503, 529}
 
 # Where a key is looked for when none is passed. The first entry is ours; the second is
 # kept so an existing SREGym checkout keeps working.
-KEY_FILES = ("~/.config/agentvitals/typesafe.env", "~/.config/sregym/typesafe.env")
-CHAT_KEY_FILES = ("~/.config/agentvitals/chat.env", "~/.config/sregym/deepseek-agent.env")
+KEY_FILES = ("~/.config/whatitdid/typesafe.env", "~/.config/sregym/typesafe.env")
+CHAT_KEY_FILES = ("~/.config/whatitdid/chat.env", "~/.config/sregym/deepseek-agent.env")
 
 
 class LabelerError(RuntimeError):

@@ -33,13 +33,13 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm --prefix web ci
       - run: npm --prefix web run build
-      # The build lands in src/agentvitals/static and is committed, so a `pip install`
+      # The build lands in src/whatitdid/static and is committed, so a `pip install`
       # ships a working `serve`. If the two ever diverge, the tree is dirty here.
       - name: the committed build must match the sources
         run: |
-          if ! git diff --quiet -- src/agentvitals/static; then
-            echo "src/agentvitals/static is stale — run 'npm --prefix web run build' and commit it"
-            git diff --stat -- src/agentvitals/static
+          if ! git diff --quiet -- src/whatitdid/static; then
+            echo "src/whatitdid/static is stale — run 'npm --prefix web run build' and commit it"
+            git diff --stat -- src/whatitdid/static
             exit 1
           fi
 
@@ -61,11 +61,11 @@ jobs:
           import glob, zipfile, sys
           wheel = glob.glob("dist/*.whl")[0]
           names = zipfile.ZipFile(wheel).namelist()
-          need = ["agentvitals/static/index.html", "agentvitals/questions/sre.v1.json",
-                  "agentvitals/questions/code.v1.json", "agentvitals/data/demo/agents.json"]
+          need = ["whatitdid/static/index.html", "whatitdid/questions/sre.v1.json",
+                  "whatitdid/questions/code.v1.json", "whatitdid/data/demo/agents.json"]
           missing = [n for n in need if n not in names]
           if missing:
               sys.exit(f"missing from {wheel}: {missing}")
           print(f"{wheel}: {len(names)} files, all required paths present")
           PY
-      - run: pip install dist/*.whl && agentvitals --help
+      - run: pip install dist/*.whl && whatitdid --help

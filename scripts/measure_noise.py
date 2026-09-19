@@ -4,7 +4,7 @@ Same agent, same config, same tasks, run more than once. Whatever the metrics mo
 the floor a real change has to clear. Without this number every comparison is guesswork
 dressed up in a confidence interval.
 
-    python scripts/measure_noise.py --out src/agentvitals/data/noise_reference.json \
+    python scripts/measure_noise.py --out src/whatitdid/data/noise_reference.json \
         --run <dir-of-run-1> --run <dir-of-run-2> --label "deepseek-flash effort=max"
 
 Each --run is a directory that will be walked for per-task session files. Tasks are paired
@@ -15,15 +15,23 @@ Every arm must have completed. An aborted run is shorter, and a shorter run has 
 different behaviour profile for reasons that have nothing to do with randomness — you
 would be measuring truncation and shipping it as noise.
 
-The first attempt at this used a `superseded/` directory as the second arm and had to be
-thrown away: those runs were superseded precisely because they died early. Step counts
-came out 12 vs 74, 116 vs 75 for the same problem and config. `check_even` below is what
-stops that happening again silently.
+Two ways this has already gone wrong on real data, both now guarded:
+
+  1. A `superseded/` directory as the second arm. Those runs were superseded precisely
+     because they died early — step counts of 12 vs 74 for the same problem. That measures
+     truncation. `check_even` catches it.
+
+  2. A directory that looked like a second run but was the first one with four problems
+     re-run: 17 of 21 transcripts byte-identical. Comparing a file against itself gives a
+     delta of exactly zero, so the floor came out at +-0.000 and every subsequent change
+     would have looked significant. `check_distinct` catches it, and it runs first because
+     it is the cheapest and the most dangerous to miss.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import pathlib
 import sys
@@ -31,9 +39,9 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 
-from agentvitals import noise, profile  # noqa: E402
-from agentvitals.labeler import Jev  # noqa: E402
-from agentvitals.watch import finished_runs, session_in  # noqa: E402
+from whatitdid import noise, profile  # noqa: E402
+from whatitdid.labeler import Jev  # noqa: E402
+from whatitdid.watch import finished_runs, session_in  # noqa: E402
 
 
 def collect(root: pathlib.Path) -> dict[str, pathlib.Path]:
@@ -44,6 +52,25 @@ def collect(root: pathlib.Path) -> dict[str, pathlib.Path]:
         if session is not None:
             out[problem] = session
     return out
+
+
+def check_distinct(runs: list[dict[str, pathlib.Path]], names: list[str]) -> dict[str, str]:
+    """Reject tasks whose arms are the same file.
+
+    A "second run" is often a directory assembled from the first one with a few problems
+    re-run. Comparing a transcript against itself gives a delta of exactly zero, so the
+    floor comes out near zero and every later change looks significant — the most
+    dangerous possible failure, because the numbers look clean.
+
+    This is the first thing to check and it costs one hash per file.
+    """
+    shared = sorted(set.intersection(*[set(r) for r in runs]))
+    complaints = {}
+    for task in shared:
+        digests = {hashlib.md5(r[task].read_bytes()).hexdigest() for r in runs}
+        if len(digests) < len(runs):
+            complaints[task] = "the arms are the same file, byte for byte"
+    return complaints
 
 
 def check_even(runs: list[dict[str, pathlib.Path]], names: list[str],
@@ -92,7 +119,7 @@ def main() -> int:
         print(f"only {len(shared)} tasks appear in every run — need at least 3", file=sys.stderr)
         return 1
 
-    complaints = check_even(found, names)
+    complaints = {**check_distinct(found, names), **check_even(found, names)}
     dropped: list[str] = []
     if complaints and not args.allow_uneven:
         print(f"\n{len(complaints)} of {len(shared)} shared tasks are not clean repeats:")

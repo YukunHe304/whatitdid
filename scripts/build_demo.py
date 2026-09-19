@@ -19,12 +19,12 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 
-from agentvitals.core import Report  # noqa: E402
-from agentvitals.findings import findings  # noqa: E402
-from agentvitals.labeler import load_question_set  # noqa: E402
+from whatitdid.core import Report  # noqa: E402
+from whatitdid.findings import findings  # noqa: E402
+from whatitdid.labeler import load_question_set  # noqa: E402
 
 RESEARCH = pathlib.Path("/Users/yukun/Documents/ChatGPT/research/output/sregym-traj-profile-20260919")
-OUT = pathlib.Path(__file__).resolve().parent.parent / "src" / "agentvitals" / "data" / "demo"
+OUT = pathlib.Path(__file__).resolve().parent.parent / "src" / "whatitdid" / "data" / "demo"
 
 # The stats keys the original run wrote, before ids were stabilised.
 LEGACY_STATS = {

@@ -1,14 +1,16 @@
-# agentvitals
+# whatitdid
 
 **Read any CLI agent's session file and report what the run actually did — step by step, with error bars.**
 
-[中文](README.zh.md)
+[**Live demo**](https://yukunhe304.github.io/whatitdid/) · [中文](README.zh.md) ·
+[![ci](https://github.com/YukunHe304/whatitdid/actions/workflows/ci.yml/badge.svg)](https://github.com/YukunHe304/whatitdid/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 ```bash
-uvx agentvitals demo        # opens the browser on real bundled data. No API key needed.
+uvx whatitdid demo        # opens the browser on real bundled data. No API key needed.
 ```
 
-![Seven CLI agents on the same fault, each run drawn as a trace of labelled steps](docs/media/agents.png)
+![Seven CLI agents on the same fault, each run drawn as a trace of labelled steps](media/agents.png)
 
 ---
 
@@ -16,15 +18,15 @@ A benchmark hands you two things: a score, and tens of thousands of lines of log
 in between. You know Claude Code got 66.7% and Codex got 61.9%; you have no idea what
 either of them actually *did*.
 
-agentvitals labels every step of a run — what kind of move it was, whether it turned up
+whatitdid labels every step of a run — what kind of move it was, whether it turned up
 anything new, whether it changed something and then checked — and then compares two rounds
 against the noise a re-run produces anyway.
 
 ```bash
-agentvitals run session.jsonl --out report.html   # one run
-agentvitals watch ./runs --out reports/           # profile each task as the benchmark finishes it
-agentvitals compare ./before ./after              # what did the change actually change
-agentvitals serve                                 # the web app
+whatitdid run session.jsonl --out report.html   # one run
+whatitdid watch ./runs --out reports/           # profile each task as the benchmark finishes it
+whatitdid compare ./before ./after              # what did the change actually change
+whatitdid serve                                 # the web app
 ```
 
 ## What it tells you that a score does not
@@ -41,12 +43,20 @@ Seven CLI agents, same Kubernetes fault, 153 steps, labelled:
 | opencode | 0.08 | 0.20 | 0.18 | 0.54 | 67% |
 | stratus | **0.00** | 0.24 | 0.18 | 0.63 | 74% |
 
-`probe` is 0.00 for claudecode, copilot and stratus: across the whole run, **none of them
+`probe` is 0.00 for claudecode, copilot and stratus: across those runs, **none of them
 ever exercises the system to see how it behaves.** They read state and decide. If your
 environment punishes an untested fix, that matters more than five points of pass rate.
 
 `said-and-did` is how often the agent did the thing it had just said it would do, checked
 over the next three steps. It ranges from 53% to 85%.
+
+> **Read this table as a demonstration, not a verdict on these products.** It is one run
+> each on one problem — enough to show the instrument works and that the agents differ,
+> nowhere near enough to rank them. Every number here comes from the data bundled in this
+> repository, so you can reproduce it (`uvx whatitdid demo`) or disagree with it. Drawing
+> a real conclusion about any of these agents means many problems and repeated runs, and
+> then holding the differences up against the repeat-noise floor below — which is the
+> whole point of the next section.
 
 ## Why compare is the point
 
@@ -74,23 +84,30 @@ A paired bootstrap tells you whether a *different draw of tasks* would have show
 thing. It says nothing about whether *re-running the same config* would have. Agents are
 not deterministic, and that second wobble is often the larger one.
 
-So agentvitals measures the repeat-noise floor and reports both:
+So whatitdid asks for a repeat-noise floor and refuses to rule without one:
 
 ```
 metric              change        95% interval  tasks up  repeat noise  verdict
-report              -0.084  (-0.138, -0.038)      5/21        ±0.009    ✓ above noise
-said-and-did rate   -0.061  (-0.093, -0.032)      2/21        ±0.019    ✓ above noise
-probe               +0.056  (+0.020, +0.091)     15/21        ±0.030    · within noise
+report              -0.084  (-0.138, -0.038)      5/21             —    ? no repeat baseline
+said-and-did rate   -0.061  (-0.093, -0.032)      2/21             —    ? no repeat baseline
+probe               +0.056  (+0.020, +0.091)     15/21             —    ? no repeat baseline
+survey              +0.023  (-0.009, +0.053)     14/21             —      interval crosses zero
 ```
 
-A change smaller than what a re-run produces is not a finding, however tight its interval
-looks. If you have your own repeated runs, use them:
+That is the real output for this comparison, because those two rounds have no third run to
+measure against. **The tool says so rather than passing the bootstrap off as a verdict.**
+
+Give it repeated runs of the same configuration and the last two columns fill in: each
+change is then judged against how far that metric drifts when nothing changed, and anything
+smaller is marked `within noise` however tight its interval looks.
 
 ```bash
-agentvitals compare ./before ./after --repeat ./before-again
+whatitdid compare ./before ./after --repeat ./before-again
 ```
 
-Without a baseline the verdict is `no baseline`, not `fine`.
+No shipped default. A floor measured on someone else's agent, on someone else's tasks, is
+not your floor — and a wrong floor is worse than none, because it makes noise look like a
+finding.
 
 ## Formats
 
@@ -134,7 +151,7 @@ labels, and no text output channel at all.
 
 That last row is why this is affordable at all, and the third row is why it is trustworthy
 across agents. Agents differ 4.5x in how much they narrate; a labeler that reads the
-narration will score the talkative one as more methodical. **agentvitals never shows the
+narration will score the talkative one as more methodical. **whatitdid never shows the
 agent's own words to the pass that produces the comparable labels** — narration is used
 only for a separate said-and-did check.
 
@@ -143,20 +160,20 @@ costlier, and biased in the way above; use it for a single run, not for comparin
 
 ## Keys
 
-Read from `TYPESAFE_API_KEY`, or `~/.config/agentvitals/typesafe.env` (mode 600). The web
+Read from `TYPESAFE_API_KEY`, or `~/.config/whatitdid/typesafe.env` (mode 600). The web
 app can write one there for you. Nothing is ever committed, logged, or sent anywhere but
 the labeling API you chose. Trajectories stay on your machine.
 
 ## Install
 
 ```bash
-pip install agentvitals
+pip install whatitdid
 ```
 
 Python 3.11+. From source:
 
 ```bash
-git clone https://github.com/YukunHe304/agentvitals && cd agentvitals
+git clone https://github.com/YukunHe304/whatitdid && cd whatitdid
 pip install -e ".[dev]"
 npm --prefix web install && npm --prefix web run build   # only if you change the web app
 pytest
@@ -165,7 +182,7 @@ pytest
 ## Python
 
 ```python
-from agentvitals import profile, compare
+from whatitdid import profile, compare
 
 rep = profile("session.jsonl")
 rep.to_html("report.html")

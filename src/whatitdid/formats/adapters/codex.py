@@ -1,7 +1,7 @@
 """Codex CLI -> ATIF v1.7 adapter.
 
 A clean port of Harbor's ``Codex._convert_events_to_trajectory`` and its
-helpers (upstream commit ``fd1a8ea``; see ``agentvitals/formats/atif/UPSTREAM.md``)
+helpers (upstream commit ``fd1a8ea``; see ``whatitdid/formats/atif/UPSTREAM.md``)
 into standalone, pure functions with no dependency on ``harbor`` or
 ``BaseInstalledAgent``.
 

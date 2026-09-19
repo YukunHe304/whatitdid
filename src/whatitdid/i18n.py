@@ -140,13 +140,13 @@ UI: dict[str, dict[str, str]] = {
         "en": "Drop a session file from Claude Code, Codex, Gemini, Copilot, OpenCode or Stratus.",
         "zh": "把 Claude Code、Codex、Gemini、Copilot、OpenCode 或 Stratus 的会话文件拖进来。"},
     "land_own_disabled": {
-        "en": "Run `agentvitals serve` to use your own trajectories.",
-        "zh": "运行 `agentvitals serve` 才能用你自己的轨迹。"},
+        "en": "Run `whatitdid serve` to use your own trajectories.",
+        "zh": "运行 `whatitdid serve` 才能用你自己的轨迹。"},
     "land_profile_h": {"en": "Profile a run", "zh": "体检一条轨迹"},
     "land_key_note": {
-        "en": "Labelling needs a TypeSafe API key. It is written to ~/.config/agentvitals/typesafe.env "
+        "en": "Labelling needs a TypeSafe API key. It is written to ~/.config/whatitdid/typesafe.env "
               "with owner-only permissions and never leaves this machine.",
-        "zh": "打标签需要 TypeSafe 的 API key。它会写到 ~/.config/agentvitals/typesafe.env，"
+        "zh": "打标签需要 TypeSafe 的 API key。它会写到 ~/.config/whatitdid/typesafe.env，"
               "权限仅本人可读，不会离开这台机器。"},
     "land_key_save": {"en": "Save key", "zh": "保存 key"},
     "land_drop": {"en": "Drop a session file here, or", "zh": "把会话文件拖到这里，或者"},
@@ -179,7 +179,7 @@ UI: dict[str, dict[str, str]] = {
         "en": "Repeat noise measured from {n} same-config runs of your own.",
         "zh": "重跑噪声来自你自己的 {n} 次同配置运行。"},
     "cmp_src_reference": {
-        "en": "Repeat noise from the values shipped with agentvitals — someone else's agent on someone else's tasks.",
+        "en": "Repeat noise from the values shipped with whatitdid — someone else's agent on someone else's tasks.",
         "zh": "重跑噪声用的是随包参考值，那是别人的 agent 在别人的题目上测的。"},
     "cmp_src_none": {
         "en": "No repeat baseline. Run the same config twice and pass it with --repeat to get one.",

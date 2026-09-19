@@ -1,6 +1,6 @@
 """Read any CLI agent's session file and report what the run actually did.
 
-    from agentvitals import profile
+    from whatitdid import profile
     rep = profile("session.jsonl")
     rep.to_html("report.html")
     rep.to_dict()          # for programs; this is what a self-improvement loop reads

@@ -72,7 +72,7 @@ export function Landing({
   return (
     <>
       <span className="eyebrow">{s.ui.land_eyebrow}</span>
-      <h1>agentvitals</h1>
+      <h1>whatitdid</h1>
       <p className="lede">{s.ui.land_lede}</p>
 
       <div className="entries">

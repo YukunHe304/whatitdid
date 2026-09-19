@@ -1,7 +1,7 @@
 """Gemini CLI -> ATIF v1.7 adapter.
 
 A clean port of Harbor's ``GeminiCli._convert_gemini_to_atif`` and
-``_load_gemini_session`` (see ``agentvitals/formats/atif/UPSTREAM.md``) into
+``_load_gemini_session`` (see ``whatitdid/formats/atif/UPSTREAM.md``) into
 standalone, pure functions with no dependency on ``harbor`` or
 ``BaseInstalledAgent``.
 

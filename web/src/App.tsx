@@ -11,7 +11,7 @@ export default function App() {
   const [config, setConfig] = useState<Config | null>(null);
   const [s, setStrings] = useState<Strings | null>(null);
   const [lang, setLang] = useState<string>(
-    () => localStorage.getItem("agentvitals.lang") ?? "en",
+    () => localStorage.getItem("whatitdid.lang") ?? "en",
   );
   const [view, setView] = useState<View>("home");
   const [agents, setAgents] = useState<Record<string, Report> | null>(null);
@@ -25,7 +25,7 @@ export default function App() {
 
   useEffect(() => {
     api.strings(lang).then(setStrings).catch((e) => setError(String(e)));
-    localStorage.setItem("agentvitals.lang", lang);
+    localStorage.setItem("whatitdid.lang", lang);
     document.documentElement.lang = lang;
   }, [lang]);
 
@@ -70,7 +70,7 @@ export default function App() {
   if (error && !config) {
     return (
       <div className="main">
-        <h1>agentvitals</h1>
+        <h1>whatitdid</h1>
         <p className="err">{error}</p>
       </div>
     );
@@ -88,7 +88,7 @@ export default function App() {
     <div className="shell">
       <nav className="rail">
         <div className="wordmark">
-          agent<em>vitals</em>
+          what<em>it</em>did
         </div>
         <div className="version">
           v{config.version}

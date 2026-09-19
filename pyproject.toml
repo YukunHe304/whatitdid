@@ -1,5 +1,5 @@
 [project]
-name = "agentvitals"
+name = "whatitdid"
 version = "0.1.0"
 description = "Read any CLI agent's session file and report what the run actually did — step by step, with error bars."
 readme = "README.md"
@@ -29,11 +29,11 @@ dependencies = [
 dev = ["pytest>=8"]
 
 [project.urls]
-Homepage = "https://github.com/YukunHe304/agentvitals"
-Repository = "https://github.com/YukunHe304/agentvitals"
+Homepage = "https://github.com/YukunHe304/whatitdid"
+Repository = "https://github.com/YukunHe304/whatitdid"
 
 [project.scripts]
-agentvitals = "agentvitals.cli:main"
+whatitdid = "whatitdid.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -43,7 +43,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-agentvitals = ["questions/*.json", "data/*.json", "data/**/*.json", "static/*", "static/**/*"]
+whatitdid = ["questions/*.json", "data/*.json", "data/**/*.json", "static/*", "static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
